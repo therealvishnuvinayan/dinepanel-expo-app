@@ -1,40 +1,28 @@
-import { Link, Stack } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Text, View } from '@/components/Themed';
+import { Button } from '@/components/ui/Button';
+import { Screen } from '@/components/ui/Screen';
+import { colors, spacing, typography } from '@/constants/theme';
 
 export default function NotFoundScreen() {
-  return (
-    <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn't exist.</Text>
+  const router = useRouter();
 
-        <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
-        </Link>
+  return (
+    <Screen contentStyle={styles.content} edges={['top', 'bottom']} scroll={false}>
+      <View>
+        <Text style={styles.eyebrow}>404</Text>
+        <Text style={styles.title}>This table isn’t ready</Text>
+        <Text style={styles.subtitle}>The page you’re looking for can’t be found.</Text>
       </View>
-    </>
+      <Button label="Back to DinePanel" onPress={() => router.replace('/')} />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-  linkText: {
-    fontSize: 14,
-    color: '#2e78b7',
-  },
+  content: { padding: spacing.xl, justifyContent: 'space-between' },
+  eyebrow: { color: colors.primary, fontSize: typography.small, fontWeight: '700', marginTop: spacing.huge },
+  title: { color: colors.text, fontSize: typography.title, fontWeight: '800', marginTop: spacing.sm },
+  subtitle: { color: colors.textSecondary, fontSize: typography.body, marginTop: spacing.sm },
 });

@@ -1,37 +1,37 @@
 {
   "expo": {
-    "name": "dine",
-    "slug": "dine",
+    "name": "DinePanel",
+    "slug": "dinepanel",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "dine",
-    "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/dinepanel-icon.png",
+    "scheme": "dinepanel",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#EAF7F0",
+        "foregroundImage": "./assets/images/dinepanel-foreground.png",
+        "monochromeImage": "./assets/images/dinepanel-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/dinepanel-favicon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/dinepanel-splash.png",
+          "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#FFFFFF"
         }
       ]
     ],
