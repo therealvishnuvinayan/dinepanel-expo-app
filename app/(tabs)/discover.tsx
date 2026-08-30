@@ -5,11 +5,12 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { OfferCard } from '@/components/offers/OfferCard';
 import { RestaurantCard } from '@/components/restaurant/RestaurantCard';
 import { Pill } from '@/components/ui/Pill';
+import { DataState } from '@/components/ui/DataState';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { offers } from '@/data/mockOffers';
-import { restaurants } from '@/data/mockRestaurants';
+import { useRewards } from '@/context/RewardsContext';
 
 const filters = ['Nearby', 'Offers', 'Popular'] as const;
 type Filter = (typeof filters)[number];
@@ -17,6 +18,7 @@ type Filter = (typeof filters)[number];
 export default function DiscoverScreen() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('Nearby');
+  const { restaurants, isLoading, error, refresh } = useRewards();
 
   const filteredRestaurants = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -29,7 +31,7 @@ export default function DiscoverScreen() {
         filter === 'Offers' ? Boolean(restaurant.offer) : filter === 'Popular' ? restaurant.popular : true;
       return matchesQuery && matchesFilter;
     });
-  }, [filter, query]);
+  }, [filter, query, restaurants]);
 
   return (
     <Screen contentStyle={styles.content}>
@@ -85,11 +87,17 @@ export default function DiscoverScreen() {
 
       <View style={styles.restaurantSection}>
         <SectionHeader title={query ? 'Search results' : 'Restaurants for you'} />
+        {isLoading && restaurants.length === 0 ? (
+          <DataState loading title="Finding restaurants" />
+        ) : null}
+        {error && restaurants.length === 0 ? (
+          <DataState message={error} onRetry={refresh} title="Restaurants are unavailable" />
+        ) : null}
         <View style={styles.list}>
           {filteredRestaurants.map((restaurant) => (
             <RestaurantCard key={restaurant.id} restaurant={restaurant} />
           ))}
-          {filteredRestaurants.length === 0 ? (
+          {!isLoading && !error && filteredRestaurants.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>No matches yet</Text>
               <Text style={styles.emptyText}>Try a restaurant name or a different filter.</Text>
@@ -157,4 +165,3 @@ const styles = StyleSheet.create({
   emptyTitle: { color: colors.text, fontSize: typography.body, fontWeight: '700' },
   emptyText: { color: colors.textSecondary, fontSize: typography.small, marginTop: spacing.xs },
 });
-

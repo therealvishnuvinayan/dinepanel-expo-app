@@ -14,10 +14,14 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 
 export default function PhoneScreen() {
   const router = useRouter();
+  const { requestOtp } = useAuth();
   const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const normalizedPhone = phone.replace(/\D/g, '').slice(0, 9);
   const canContinue = normalizedPhone.length >= 8;
 
@@ -25,6 +29,20 @@ export default function PhoneScreen() {
     const digits = value.replace(/\D/g, '').slice(0, 9);
     const parts = [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 9)].filter(Boolean);
     return parts.join(' ');
+  };
+
+  const continueWithPhone = async () => {
+    const fullPhone = `+971${normalizedPhone}`;
+    setLoading(true);
+    setError('');
+    try {
+      await requestOtp(fullPhone);
+      router.push({ pathname: '/auth/otp', params: { phone: fullPhone } });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to send a code.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,13 +83,15 @@ export default function PhoneScreen() {
               <ShieldCheck color={colors.primary} size={18} strokeWidth={2} />
               <Text style={styles.securityText}>Your number is used only to secure your account.</Text>
             </View>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
           </View>
 
           <Button
             disabled={!canContinue}
             icon={ArrowRight}
             label="Continue"
-            onPress={() => router.push({ pathname: '/auth/otp', params: { phone: normalizedPhone } })}
+            loading={loading}
+            onPress={continueWithPhone}
           />
         </View>
       </Screen>
@@ -142,4 +162,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   securityText: { color: colors.textSecondary, fontSize: typography.caption, flex: 1 },
+  error: { color: colors.danger, fontSize: typography.small, lineHeight: 20, marginTop: spacing.md },
 });

@@ -3,6 +3,7 @@ import type { Restaurant } from '@/types';
 export const restaurants: Restaurant[] = [
   {
     id: 'green-chilli',
+    slug: 'green-chilli',
     name: 'Green Chilli',
     cuisine: 'Indian',
     rewardPercent: 2,
@@ -20,6 +21,7 @@ export const restaurants: Restaurant[] = [
   },
   {
     id: 'operation-falafel',
+    slug: 'operation-falafel',
     name: 'Operation: Falafel',
     cuisine: 'Middle Eastern',
     rewardPercent: 10,
@@ -37,6 +39,7 @@ export const restaurants: Restaurant[] = [
   },
   {
     id: 'brunch-and-cake',
+    slug: 'brunch-and-cake',
     name: 'Brunch & Cake',
     cuisine: 'Cafe',
     rewardPercent: 5,
@@ -53,6 +56,7 @@ export const restaurants: Restaurant[] = [
   },
   {
     id: 'reif-japanese-kushiyaki',
+    slug: 'reif-japanese-kushiyaki',
     name: 'Reif Japanese Kushiyaki',
     cuisine: 'Japanese',
     rewardPercent: 4,
@@ -71,4 +75,3 @@ export const restaurants: Restaurant[] = [
 
 export const getRestaurant = (id: string) =>
   restaurants.find((restaurant) => restaurant.id === id) ?? restaurants[0];
-

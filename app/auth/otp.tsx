@@ -15,21 +15,46 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 
 export default function OtpScreen() {
   const router = useRouter();
+  const { requestOtp, verifyOtp } = useAuth();
   const { phone } = useLocalSearchParams<{ phone?: string }>();
   const inputRef = useRef<TextInput>(null);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
-  const verify = () => {
-    if (code === '123456') {
-      setError('');
-      router.replace('/(tabs)');
+  const verify = async () => {
+    if (typeof phone !== 'string') {
+      setError('Your phone number is missing. Please go back and try again.');
       return;
     }
-    setError('That code isn’t quite right. Try 123456.');
+    setLoading(true);
+    setError('');
+    try {
+      await verifyOtp(phone, code);
+      router.replace('/(tabs)');
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : 'Unable to verify this code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resend = async () => {
+    if (typeof phone !== 'string') return;
+    setResending(true);
+    setError('');
+    try {
+      await requestOtp(phone);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to resend the code.');
+    } finally {
+      setResending(false);
+    }
   };
 
   const phoneEnding = typeof phone === 'string' && phone.length >= 4 ? phone.slice(-4) : '4567';
@@ -79,9 +104,9 @@ export default function OtpScreen() {
                 <Text style={styles.demoCode}>123456</Text>
               </Pressable>
             </View>
-            <Pressable onPress={() => setCode('')} style={styles.resend}>
+            <Pressable disabled={resending} onPress={resend} style={styles.resend}>
               <Text style={styles.resendText}>Didn’t receive it? </Text>
-              <Text style={styles.resendAction}>Send again</Text>
+              <Text style={styles.resendAction}>{resending ? 'Sending…' : 'Send again'}</Text>
             </Pressable>
           </View>
 
@@ -89,6 +114,7 @@ export default function OtpScreen() {
             disabled={code.length !== 6}
             icon={ArrowRight}
             label="Verify and continue"
+            loading={loading}
             onPress={verify}
           />
         </View>

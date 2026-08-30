@@ -2,6 +2,7 @@ import type { ImageSourcePropType } from 'react-native';
 
 export type Restaurant = {
   id: string;
+  slug: string;
   name: string;
   cuisine: string;
   rewardPercent: number;
@@ -26,7 +27,26 @@ export type RewardTransaction = {
   cuisine: string;
   amount: number;
   date: string;
+  createdAt?: string;
   type: TransactionType;
+};
+
+export type DemoBill = {
+  id: string;
+  restaurant: Restaurant;
+  billNumber: string;
+  billAmount: number;
+  billDate: string;
+  rewardPercentage: number;
+  rewardAmount: number;
+  claimable: boolean;
+};
+
+export type RewardClaimResult = {
+  rewardAmount: number;
+  transaction: RewardTransaction;
+  updatedBalance: number;
+  restaurant: Restaurant;
 };
 
 export type Offer = {
@@ -38,4 +58,3 @@ export type Offer = {
   eyebrow: string;
   accent: string;
 };
-

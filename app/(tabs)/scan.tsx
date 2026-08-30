@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Flashlight, Keyboard, ScanLine, Sparkles, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   KeyboardAvoidingView,
   Modal,
@@ -18,13 +19,17 @@ import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { useRewards } from '@/context/RewardsContext';
 
 export default function ScanScreen() {
   const router = useRouter();
+  const { createDemoBill } = useRewards();
   const [scanProgress] = useState(() => new Animated.Value(0));
   const [manualOpen, setManualOpen] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [flashOn, setFlashOn] = useState(false);
+  const [openingDemo, setOpeningDemo] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -50,7 +55,19 @@ export default function ScanScreen() {
     outputRange: [8, 238],
   });
 
-  const openDemoBill = () => router.push('/bill/confirm');
+  const openDemoBill = async () => {
+    if (openingDemo) return;
+    setOpeningDemo(true);
+    setError('');
+    try {
+      await createDemoBill();
+      router.push('/bill/confirm');
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Unable to create the demo bill.');
+    } finally {
+      setOpeningDemo(false);
+    }
+  };
 
   return (
     <>
@@ -91,10 +108,15 @@ export default function ScanScreen() {
             <Text style={styles.manualText}>Enter code manually</Text>
           </Pressable>
 
-          <Pressable onPress={openDemoBill} style={({ pressed }) => [styles.demo, pressed && styles.pressed]}>
-            <Sparkles color={colors.primaryMuted} size={15} strokeWidth={2} />
-            <Text style={styles.demoText}>Use demo bill</Text>
+          <Pressable disabled={openingDemo} onPress={openDemoBill} style={({ pressed }) => [styles.demo, pressed && styles.pressed]}>
+            {openingDemo ? (
+              <ActivityIndicator color={colors.primaryMuted} size="small" />
+            ) : (
+              <Sparkles color={colors.primaryMuted} size={15} strokeWidth={2} />
+            )}
+            <Text style={styles.demoText}>{openingDemo ? 'Creating demo bill…' : 'Use demo bill'}</Text>
           </Pressable>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
         </View>
 
         <Text style={styles.privacy}>Scanning reads only the bill QR code. No image is stored.</Text>
@@ -132,7 +154,7 @@ export default function ScanScreen() {
               label="Find bill"
               onPress={() => {
                 setManualOpen(false);
-                openDemoBill();
+                void openDemoBill();
               }}
             />
           </View>
@@ -200,6 +222,7 @@ const styles = StyleSheet.create({
   manualText: { color: colors.white, fontSize: typography.small, fontWeight: '700' },
   demo: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.xs },
   demoText: { color: colors.primaryMuted, fontSize: typography.caption, fontWeight: '600' },
+  error: { color: '#FFD8D1', fontSize: typography.caption, lineHeight: 18, textAlign: 'center', paddingHorizontal: spacing.md },
   privacy: { color: 'rgba(255,255,255,0.38)', fontSize: 11, textAlign: 'center', marginTop: spacing.xs },
   pressed: { opacity: 0.62, transform: [{ scale: 0.985 }] },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(5,16,11,0.54)' },

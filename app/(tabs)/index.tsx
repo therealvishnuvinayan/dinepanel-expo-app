@@ -7,18 +7,21 @@ import { RestaurantCard } from '@/components/restaurant/RestaurantCard';
 import { RewardBalance } from '@/components/rewards/RewardBalance';
 import { TransactionRow } from '@/components/rewards/TransactionRow';
 import { IconButton } from '@/components/ui/IconButton';
+import { DataState } from '@/components/ui/DataState';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { colors, spacing, typography } from '@/constants/theme';
 import { useRewards } from '@/context/RewardsContext';
+import { useAuth } from '@/context/AuthContext';
 import { offers } from '@/data/mockOffers';
-import { restaurants } from '@/data/mockRestaurants';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { balance, monthlyEarned, transactions } = useRewards();
+  const { user } = useAuth();
+  const { balance, monthlyEarned, transactions, restaurants, isLoading, error, refresh } = useRewards();
   const recent = transactions.filter((transaction) => transaction.type === 'earned').slice(0, 3);
+  const firstName = user?.name?.trim().split(/\s+/)[0] ?? 'there';
 
   return (
     <Screen contentStyle={styles.content}>
@@ -39,7 +42,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.greeting}>
-        <Text style={styles.hello}>Hi, Vishnu</Text>
+        <Text style={styles.hello}>Hi, {firstName}</Text>
         <Text style={styles.greetingSub}>Good food should give something back.</Text>
       </View>
 
@@ -65,6 +68,12 @@ export default function HomeScreen() {
             <RestaurantCard key={restaurant.id} restaurant={restaurant} variant="compact" />
           ))}
         </ScrollView>
+        {isLoading && restaurants.length === 0 ? (
+          <DataState loading title="Finding your restaurants" />
+        ) : null}
+        {error && restaurants.length === 0 ? (
+          <DataState message={error} onRetry={refresh} title="Restaurants are unavailable" />
+        ) : null}
       </View>
 
       <View style={styles.section}>
@@ -94,6 +103,12 @@ export default function HomeScreen() {
               {index < recent.length - 1 ? <View style={styles.divider} /> : null}
             </View>
           ))}
+          {!isLoading && !error && recent.length === 0 ? (
+            <DataState
+              message="Scan your first bill and the reward will appear here."
+              title="No rewards yet"
+            />
+          ) : null}
         </View>
       </View>
     </Screen>

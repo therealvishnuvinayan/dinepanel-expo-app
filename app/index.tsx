@@ -1,14 +1,25 @@
 import { useRouter } from 'expo-router';
 import { ArrowRight, ReceiptText, Sparkles } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading || isAuthenticated) {
+    return (
+      <Screen contentStyle={styles.loading} edges={['top', 'bottom', 'left', 'right']} scroll={false}>
+        <Wordmark />
+        <ActivityIndicator color={colors.primary} size="large" />
+      </Screen>
+    );
+  }
 
   return (
     <Screen
@@ -70,6 +81,7 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  loading: { alignItems: 'center', justifyContent: 'center', gap: spacing.xl },
   screen: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.lg,
@@ -220,4 +232,3 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 });
-

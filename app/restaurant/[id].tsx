@@ -1,20 +1,66 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Clock3, Heart, MapPin, Navigation, Star } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Button } from '@/components/ui/Button';
+import { DataState } from '@/components/ui/DataState';
 import { Pill } from '@/components/ui/Pill';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
-import { getRestaurant } from '@/data/mockRestaurants';
+import { useRewards } from '@/context/RewardsContext';
+import type { Restaurant } from '@/types';
+import { formatAED } from '@/utils/format';
 
 export default function RestaurantDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const restaurant = getRestaurant(id);
+  const { getRestaurant, loadRestaurant, transactions } = useRewards();
+  const [restaurant, setRestaurant] = useState<Restaurant | undefined>(() => getRestaurant(id));
+  const [loading, setLoading] = useState(!restaurant);
+  const [error, setError] = useState('');
   const [favourite, setFavourite] = useState(true);
+
+  useEffect(() => {
+    if (typeof id !== 'string') return;
+    let active = true;
+    setLoading(true);
+    setError('');
+    loadRestaurant(id)
+      .then((loaded) => {
+        if (active) setRestaurant(loaded);
+      })
+      .catch((loadError) => {
+        if (active) setError(loadError instanceof Error ? loadError.message : 'Unable to load this restaurant.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id, loadRestaurant]);
+
+  if (!restaurant) {
+    return (
+      <Screen contentStyle={styles.content} edges={['top', 'bottom', 'left', 'right']}>
+        <AppHeader showBack title="Restaurant" />
+        <View style={styles.stateWrap}>
+          <DataState
+            loading={loading}
+            message={error || undefined}
+            onRetry={error && typeof id === 'string' ? () => void loadRestaurant(id).then(setRestaurant) : undefined}
+            title={loading ? 'Loading restaurant' : 'Restaurant unavailable'}
+          />
+        </View>
+      </Screen>
+    );
+  }
+
+  const latestVisit = transactions.find(
+    (transaction) => transaction.restaurantId === restaurant.id,
+  );
 
   return (
     <Screen contentStyle={styles.content} edges={['top', 'bottom', 'left', 'right']}>
@@ -94,11 +140,16 @@ export default function RestaurantDetailScreen() {
           </View>
         </View>
 
-        <View style={styles.visitCard}>
-          <Text style={styles.visitLabel}>Your last visit</Text>
-          <Text style={styles.visitDate}>11 Aug 2026</Text>
-          <Text style={styles.visitReward}>You earned AED 3.50</Text>
-        </View>
+        {latestVisit ? (
+          <View style={styles.visitCard}>
+            <Text style={styles.visitLabel}>Your last reward activity</Text>
+            <Text style={styles.visitDate}>{latestVisit.date}</Text>
+            <Text style={styles.visitReward}>
+              {latestVisit.type === 'earned' ? 'You earned ' : 'You used '}
+              {formatAED(Math.abs(latestVisit.amount))}
+            </Text>
+          </View>
+        ) : null}
 
         <Button label="Scan a bill here" onPress={() => router.push('/(tabs)/scan')} style={styles.scanButton} />
       </View>
@@ -108,6 +159,7 @@ export default function RestaurantDetailScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.xxxl },
+  stateWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.lg },
   heroWrap: { marginHorizontal: spacing.lg, marginTop: spacing.xs },
   hero: { width: '100%', height: 248, borderRadius: radius.xl, backgroundColor: colors.surface },
   favourite: {

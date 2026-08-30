@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { RewardBalance } from '@/components/rewards/RewardBalance';
 import { TransactionRow } from '@/components/rewards/TransactionRow';
 import { Pill } from '@/components/ui/Pill';
+import { DataState } from '@/components/ui/DataState';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { useRewards } from '@/context/RewardsContext';
@@ -12,7 +13,7 @@ const tabs = ['Activity', 'Earned', 'Redeemed'] as const;
 type RewardsTab = (typeof tabs)[number];
 
 export default function RewardsScreen() {
-  const { balance, transactions } = useRewards();
+  const { balance, transactions, isLoading, error, refresh } = useRewards();
   const [activeTab, setActiveTab] = useState<RewardsTab>('Activity');
 
   const visibleTransactions = useMemo(() => {
@@ -44,12 +45,28 @@ export default function RewardsScreen() {
       </View>
 
       <View style={styles.transactions}>
+        {isLoading && transactions.length === 0 ? (
+          <DataState loading title="Loading your rewards" />
+        ) : null}
+        {error && transactions.length === 0 ? (
+          <DataState message={error} onRetry={refresh} title="Rewards are unavailable" />
+        ) : null}
         {visibleTransactions.map((transaction, index) => (
           <View key={transaction.id}>
             <TransactionRow transaction={transaction} />
             {index < visibleTransactions.length - 1 ? <View style={styles.divider} /> : null}
           </View>
         ))}
+        {!isLoading && !error && visibleTransactions.length === 0 ? (
+          <DataState
+            message={
+              activeTab === 'Activity'
+                ? 'Scan a restaurant bill to earn your first reward.'
+                : `No ${activeTab.toLowerCase()} transactions yet.`
+            }
+            title="Nothing here yet"
+          />
+        ) : null}
       </View>
     </Screen>
   );
@@ -94,4 +111,3 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: colors.border, marginLeft: 56 },
 });
-

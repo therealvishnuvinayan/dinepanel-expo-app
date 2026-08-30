@@ -13,7 +13,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
-import { useRewards } from '@/context/RewardsContext';
+import { useAuth } from '@/context/AuthContext';
 
 const menuItems: { label: string; icon: LucideIcon }[] = [
   { label: 'Personal details', icon: UserRound },
@@ -25,14 +25,19 @@ const menuItems: { label: string; icon: LucideIcon }[] = [
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { resetDemo } = useRewards();
+  const { logout, user } = useAuth();
+  const displayName = user?.name?.trim() || 'DinePanel member';
+  const phone = user?.phone ?? '';
+  const displayPhone = phone.startsWith('+971')
+    ? `+971 ${phone.slice(4, 6)} ${phone.slice(6, 9)} ${phone.slice(9)}`
+    : phone;
 
   const openItem = (label: string) => {
     Alert.alert(label, 'This account area is ready for the next prototype stage.');
   };
 
-  const logOut = () => {
-    resetDemo();
+  const logOut = async () => {
+    await logout();
     router.replace('/');
   };
 
@@ -43,11 +48,11 @@ export default function ProfileScreen() {
 
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>V</Text>
+          <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.name}>Vishnu</Text>
-          <Text style={styles.phone}>+971 50 123 4567</Text>
+          <Text style={styles.name}>{displayName}</Text>
+          <Text style={styles.phone}>{displayPhone}</Text>
         </View>
         <View style={styles.memberBadge}>
           <Text style={styles.memberText}>Member</Text>
@@ -75,7 +80,7 @@ export default function ProfileScreen() {
         })}
       </View>
 
-      <Pressable onPress={logOut} style={({ pressed }) => [styles.logout, pressed && styles.pressed]}>
+      <Pressable onPress={() => void logOut()} style={({ pressed }) => [styles.logout, pressed && styles.pressed]}>
         <LogOut color={colors.danger} size={19} strokeWidth={2} />
         <Text style={styles.logoutText}>Log out</Text>
       </Pressable>

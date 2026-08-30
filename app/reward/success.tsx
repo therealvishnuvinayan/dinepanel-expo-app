@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { DataState } from '@/components/ui/DataState';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { useRewards } from '@/context/RewardsContext';
@@ -11,7 +12,7 @@ import { formatAED } from '@/utils/format';
 
 export default function RewardSuccessScreen() {
   const router = useRouter();
-  const { balance } = useRewards();
+  const { lastClaim } = useRewards();
   const [scale] = useState(() => new Animated.Value(0.6));
   const [opacity] = useState(() => new Animated.Value(0));
 
@@ -21,6 +22,20 @@ export default function RewardSuccessScreen() {
       Animated.timing(opacity, { toValue: 1, duration: 380, useNativeDriver: true }),
     ]).start();
   }, [opacity, scale]);
+
+  if (!lastClaim) {
+    return (
+      <Screen contentStyle={styles.content} edges={['top', 'bottom', 'left', 'right']} scroll={false}>
+        <View style={styles.successContent}>
+          <DataState
+            message="Your latest balance is available on the Home and Rewards screens."
+            title="No recent claim"
+          />
+        </View>
+        <Button label="Return home" onPress={() => router.replace('/(tabs)')} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen contentStyle={styles.content} edges={['top', 'bottom', 'left', 'right']} scroll={false}>
@@ -33,13 +48,13 @@ export default function RewardSuccessScreen() {
 
         <Animated.View style={[styles.copy, { opacity }]}>
           <Text style={styles.eyebrow}>Reward added</Text>
-          <Text style={styles.amount}>{formatAED(10)}</Text>
-          <Text style={styles.restaurant}>Green Chilli</Text>
+          <Text style={styles.amount}>{formatAED(lastClaim.rewardAmount)}</Text>
+          <Text style={styles.restaurant}>{lastClaim.restaurant.name}</Text>
         </Animated.View>
 
         <Animated.View style={[styles.balanceCard, { opacity }]}>
           <Text style={styles.balanceLabel}>Available balance</Text>
-          <Text style={styles.balanceAmount}>{formatAED(balance)}</Text>
+          <Text style={styles.balanceAmount}>{formatAED(lastClaim.updatedBalance)}</Text>
         </Animated.View>
       </View>
 
