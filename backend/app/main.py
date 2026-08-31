@@ -10,7 +10,7 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
-    description="DinePanel Phase 1 rewards API",
+    description="DinePanel rewards and restaurant merchant API",
 )
 
 # Development additionally permits browser clients hosted on a private-LAN or loopback address.

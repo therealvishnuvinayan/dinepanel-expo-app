@@ -15,7 +15,7 @@ function SessionRedirector() {
   useEffect(() => {
     if (isLoading) return;
     const root = segments[0];
-    const protectedRoute = ['(tabs)', 'bill', 'reward', 'restaurant', 'offers'].includes(root ?? '');
+    const protectedRoute = ['(tabs)', 'bill', 'claim', 'reward', 'restaurant', 'offers'].includes(root ?? '');
     if (!isAuthenticated && protectedRoute) router.replace('/');
     if (isAuthenticated && (root === undefined || root === 'auth')) router.replace('/(tabs)');
   }, [isAuthenticated, isLoading, router, segments]);
@@ -41,6 +41,7 @@ function RootStack() {
         <Stack.Screen name="auth/otp" />
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="bill/confirm" options={{ presentation: 'card' }} />
+        <Stack.Screen name="claim/[token]" options={{ animation: 'fade' }} />
         <Stack.Screen name="reward/success" options={{ animation: 'fade' }} />
         <Stack.Screen name="restaurant/[id]" />
         <Stack.Screen name="offers" />

@@ -4,7 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.models import Restaurant
+from app.models import Restaurant, RestaurantStaff, StaffRole, User
+
+
+GREEN_CHILLI_MANAGER_PHONE = "+971500000001"
 
 
 RESTAURANTS = [
@@ -81,10 +84,49 @@ def seed_restaurants(db: Session) -> int:
     return changed
 
 
+def seed_merchant_staff(db: Session) -> RestaurantStaff:
+    restaurant = db.scalar(select(Restaurant).where(Restaurant.slug == "green-chilli"))
+    if restaurant is None:
+        raise RuntimeError("Seed Green Chilli before its merchant staff")
+
+    user = db.scalar(select(User).where(User.phone == GREEN_CHILLI_MANAGER_PHONE))
+    if user is None:
+        user = User(phone=GREEN_CHILLI_MANAGER_PHONE, name="Green Chilli Manager")
+        db.add(user)
+        db.flush()
+    else:
+        user.name = "Green Chilli Manager"
+
+    membership = db.scalar(
+        select(RestaurantStaff).where(
+            RestaurantStaff.user_id == user.id,
+            RestaurantStaff.restaurant_id == restaurant.id,
+        )
+    )
+    if membership is None:
+        membership = RestaurantStaff(
+            user_id=user.id,
+            restaurant_id=restaurant.id,
+            role=StaffRole.MANAGER,
+            is_active=True,
+        )
+        db.add(membership)
+    else:
+        membership.role = StaffRole.MANAGER
+        membership.is_active = True
+    db.commit()
+    db.refresh(membership)
+    return membership
+
+
 def main() -> None:
     with SessionLocal() as db:
         changed = seed_restaurants(db)
-    print(f"Seeded {changed} restaurants")
+        membership = seed_merchant_staff(db)
+    print(
+        f"Seeded {changed} restaurants and merchant manager "
+        f"{GREEN_CHILLI_MANAGER_PHONE} ({membership.role.value})"
+    )
 
 
 if __name__ == "__main__":

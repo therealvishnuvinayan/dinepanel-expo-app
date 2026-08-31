@@ -1,23 +1,47 @@
-# DinePanel Phase 1
+# DinePanel Phase 2
 
-DinePanel is an Expo mobile prototype backed by a FastAPI REST API and PostgreSQL. The app keeps its existing premium UI, while authentication, restaurants, bills, reward claims, transaction history, and balance persistence now come from the backend.
+DinePanel is a customer rewards app with a companion restaurant workspace. Restaurants keep their existing POS, enter the POS bill number and total in DinePanel Merchant, and show the customer a secure one-time QR. The customer scans it in the existing Expo app and the reward is recorded in the original Phase 1 ledger.
 
 ## Architecture
 
 ```text
-Expo SDK 54 app
-  -> JSON REST API + JWT bearer token
+Existing restaurant POS
+  -> bill number + amount
+Merchant React/Vite app
+  -> REST/JWT
 FastAPI
-  -> SQLAlchemy 2 sessions + Decimal business rules
+  -> SQLAlchemy 2 transactions and server-side Decimal reward rules
 PostgreSQL / Neon
-  -> users, restaurants, bills, reward_transactions, reward_claims
+  -> opaque claim-token hashes + existing reward ledger
+Expo SDK 54 customer app
+  -> camera QR scan, preview, confirmation, claim
 ```
 
-The reward ledger is the balance source of truth. `users` has no balance column. The API sums completed, signed `reward_transactions` amounts whenever it returns a balance.
+The ledger remains the balance source of truth. There is no `users.balance` column and merchant claims do not create a second accounting path.
 
-## Backend setup
+## Exact shipped versions
 
-Python 3.11+ and a PostgreSQL database are required.
+- Expo `54.0.2`
+- React Native `0.81.5`
+- React `19.1.0`
+- Expo Router `6.0.24`
+- TypeScript `5.9.3`
+- expo-camera `17.0.10` (selected by Expo’s SDK 54 installer)
+
+## 1. PostgreSQL and backend
+
+Python 3.11+ and PostgreSQL are required. One local PostgreSQL option is:
+
+```bash
+docker run --name dinepanel-postgres \
+  -e POSTGRES_USER=dinepanel \
+  -e POSTGRES_PASSWORD=dinepanel \
+  -e POSTGRES_DB=dinepanel \
+  -p 5432:5432 \
+  -d postgres:17
+```
+
+Install and configure the API:
 
 ```bash
 cd backend
@@ -27,52 +51,60 @@ python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Set these values in `backend/.env`:
+Set `backend/.env`:
 
 ```dotenv
-DATABASE_URL=postgresql+psycopg://dinepanel:password@localhost:5432/dinepanel
+DATABASE_URL=postgresql+psycopg://dinepanel:dinepanel@localhost:5432/dinepanel
 JWT_SECRET=replace-with-at-least-32-random-characters
 ENVIRONMENT=development
-CORS_ORIGINS=http://localhost:8081,http://localhost:19006
+CORS_ORIGINS=http://localhost:8081,http://localhost:19006,http://localhost:5173
+CLAIM_BASE_URL=dinepanel://claim
+CLAIM_TOKEN_EXPIRE_MINUTES=10
 ```
 
-Generate a suitable JWT secret with `openssl rand -hex 32`.
+Generate a suitable secret with `openssl rand -hex 32`. For Neon, use its SQLAlchemy URL and `?sslmode=require`. Never expose `DATABASE_URL` or `JWT_SECRET` through an `EXPO_PUBLIC_*` or `VITE_*` variable.
 
-For Neon, use its connection host and require TLS. The SQLAlchemy URL has this form:
-
-```dotenv
-DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/DATABASE?sslmode=require
-```
-
-Never put `DATABASE_URL` or `JWT_SECRET` in an `EXPO_PUBLIC_*` variable.
-
-Apply and verify migrations:
+Apply the additive migrations, verify drift, seed, and run:
 
 ```bash
-cd backend
-source .venv/bin/activate
 alembic upgrade head
 alembic current
 alembic check
-```
-
-Seed or refresh the four demo restaurants (the command is idempotent):
-
-```bash
 python -m app.db.seed
-```
-
-Start the API so it is reachable by simulators and physical devices:
-
-```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Health and interactive API docs are available at `http://localhost:8000/health` and `http://localhost:8000/docs`.
+The health endpoint and API docs are at `http://localhost:8000/health` and `http://localhost:8000/docs`.
 
-## Expo setup
+## 2. Merchant workspace
 
-The validated versions remain Expo `54.0.2`, React Native `0.81.5`, React `19.1.0`, and Expo Router `6.0.24`.
+The merchant app is isolated in `merchant/` and does not alter the Expo app’s React dependency tree.
+
+```bash
+cd merchant
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Its development URL is `http://localhost:5173` and its environment is:
+
+```dotenv
+VITE_API_URL=http://localhost:8000
+```
+
+Use `+971500000001`, OTP `123456`. The seeded user is Green Chilli Manager with an active `MANAGER` membership at Green Chilli. The seed is idempotent.
+
+The responsive workspace includes:
+
+- phone/OTP merchant access enforcement;
+- compact daily metrics and recent activity;
+- bill creation with server-calculated reward values;
+- a real QR, ten-minute countdown, refresh, and 2-second detail polling;
+- newest-first history with status filters;
+- bill detail with amount, reward, status, creation, and claimed time.
+
+## 3. Customer Expo app
 
 ```bash
 cd ..
@@ -87,63 +119,82 @@ For iOS Simulator and web on the same Mac:
 EXPO_PUBLIC_API_URL=http://localhost:8000
 ```
 
-For Android Emulator, use `http://10.0.2.2:8000`. For Expo Go on a physical device, the phone cannot use the Mac's `localhost`. Find the Mac's Wi-Fi address with `ipconfig getifaddr en0`, keep both devices on the same network, and use:
+For Android Emulator use `http://10.0.2.2:8000`. For Expo Go on a physical device, find the Mac’s LAN address with `ipconfig getifaddr en0`, keep both devices on the same Wi-Fi, bind FastAPI and Vite to `0.0.0.0`, and configure both apps with that address:
 
 ```dotenv
+# root .env
 EXPO_PUBLIC_API_URL=http://192.168.x.x:8000
+
+# merchant/.env
+VITE_API_URL=http://192.168.x.x:8000
 ```
 
-Restart Metro after changing `.env`. The backend must be bound to `0.0.0.0`, and the macOS firewall must permit incoming Python connections.
+Restart Metro/Vite after environment changes. The OS firewall must allow the selected ports.
 
-Mobile JWTs are persisted with Expo SecureStore. The web build uses browser local storage because SecureStore is a native Android/iOS facility.
+Customer development login is `+971501234567`, OTP `123456`. The real flow is Scan → server preview → existing Bill Confirmation → server claim → existing Reward Success. The demo bill remains visible only as a secondary development action.
 
-## Development flow
+### Claim QR format
 
-1. Enter `+971501234567` in the app (the UAE prefix is already shown in the phone field).
-2. Enter development OTP `123456`.
-3. Open Scan and select **Use demo bill**.
-4. The backend creates a real AED 500 Green Chilli bill and previews the stored 2% rate.
-5. Claiming creates one completed AED 10 ledger entry and one reward claim in a single transaction.
-6. Home and Rewards immediately show the returned AED 10 balance/activity.
-7. Restarting the app restores the SecureStore token, calls `/me`, and reloads the persisted ledger balance.
-8. Repeating the claim request for the same bill returns HTTP 409. A unique constraint on `reward_claims.bill_id` enforces this at the database level.
+The QR contains only the backend-issued claim URL, normally:
 
-## API endpoints
+```text
+dinepanel://claim/<opaque-token>
+```
 
-- `POST /auth/request-otp`
-- `POST /auth/verify-otp`
-- `GET /me`
-- `GET /restaurants`
-- `GET /restaurants/{id}`
-- `GET /rewards/balance`
-- `GET /rewards/transactions`
-- `GET /rewards/transactions/{id}`
-- `POST /bills/demo`
-- `POST /bills/{bill_id}/claim`
-- `GET /health`
+The canonical parser also accepts `https://HOST/claim/<token>` and `http://HOST/claim/<token>` for hosted, localhost, and LAN development. It rejects other paths, schemes, query strings, fragments, and non-token payloads. No bill amount, reward, percentage, restaurant ID, or customer ID is trusted from the QR.
 
-Except for health, auth, and restaurant discovery, user-specific endpoints require `Authorization: Bearer <token>`.
+The Expo Router route `claim/[token]` supports the DinePanel scheme and waits for authenticated session restoration before previewing. In-app scanning remains the required Phase 2 path.
 
-## Tests and validation
+## Merchant API
+
+- `GET /merchant/me`
+- `GET /merchant/restaurants`
+- `GET /merchant/restaurants/{restaurant_id}/dashboard`
+- `POST /merchant/restaurants/{restaurant_id}/bills`
+- `GET /merchant/restaurants/{restaurant_id}/bills`
+- `GET /merchant/bills/{bill_id}`
+- `POST /merchant/bills/{bill_id}/refresh-claim-token`
+
+Every restaurant-scoped route verifies an active `restaurant_staff` membership. A staff user cannot change a URL ID to access another restaurant.
+
+## Customer claim API
+
+- `POST /claims/preview` validates but does not mutate rewards.
+- `POST /claims/claim` locks token/bill rows, recalculates the reward on the server, writes the existing transaction and claim rows, consumes the token, marks the bill claimed, and commits atomically.
+
+Tokens use 32 random bytes (at least 256 bits), are returned in plaintext only at issue/refresh time, and are stored as SHA-256 hashes. They expire after ten minutes, are single-use, and refresh invalidates prior active tokens. Existing unique constraints on bill ledger/claim relationships provide a second database-level defense against concurrent double credit.
+
+## Validation commands
 
 ```bash
+# Backend
 cd backend
 source .venv/bin/activate
 pytest -q
-python -c "from app.main import app; print(app.title)"
+python -m compileall -q app
+alembic upgrade head
+alembic current
 alembic check
 
+# Merchant
+cd ../merchant
+npm run lint
+npm test
+npm run build
+
+# Expo
 cd ..
 npm run typecheck
 npm run lint
 npx expo install --check
-EXPO_OFFLINE=1 npx expo export --platform web --clear
+npx expo export --platform web
+npm run web
 ```
 
-## Phase 1 boundaries
+## Phase 2 boundaries
 
-- OTP `123456` is development/test-only. Production intentionally returns a service error until a real SMS provider is added.
-- Bill scanning is simulated; every **Use demo bill** action creates a new real database bill. OCR and POS integrations are not included.
-- Rewards can be earned but not redeemed in this phase.
-- Offers and presentation-only restaurant metadata remain local UI content; restaurant identity, description, address, active state, and reward percentage come from the API.
-- Merchant/admin tools, payments, recommendations, campaigns, push notifications, and AI are intentionally out of scope.
+- OTP `123456` is development/test-only; no production SMS provider is configured.
+- There are no POS integrations, OCR, AI, payments, redemption, merchant payouts, push notifications, WebSockets, or admin portal.
+- QR status uses lightweight bill-detail polling rather than WebSockets.
+- Expiry status is synchronized when merchant bill data is read; no background expiry worker is included.
+- Rewards are earn-only in this phase and remain AED/Dubai-focused for the prototype.

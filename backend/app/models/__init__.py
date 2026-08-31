@@ -1,21 +1,31 @@
 from app.models.entities import (
     Bill,
+    BillClaimStatus,
+    BillClaimToken,
+    BillSource,
     BillStatus,
     Restaurant,
+    RestaurantStaff,
     RewardClaim,
     RewardTransaction,
     TransactionStatus,
     TransactionType,
     User,
+    StaffRole,
 )
 
 __all__ = [
     "Bill",
+    "BillClaimStatus",
+    "BillClaimToken",
+    "BillSource",
     "BillStatus",
     "Restaurant",
+    "RestaurantStaff",
     "RewardClaim",
     "RewardTransaction",
     "TransactionStatus",
     "TransactionType",
     "User",
+    "StaffRole",
 ]

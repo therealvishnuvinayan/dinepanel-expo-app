@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models import Bill, BillStatus, Restaurant
+from app.models import Bill, BillClaimStatus, BillSource, BillStatus, Restaurant
 from app.services.rewards import calculate_reward, quantize_money
 
 
@@ -23,6 +23,8 @@ def create_demo_bill(db: Session, restaurant: Restaurant, amount: Decimal) -> Bi
         amount=quantize_money(amount),
         bill_date=date.today(),
         status=BillStatus.CLAIMABLE,
+        source=BillSource.DEMO,
+        claim_status=BillClaimStatus.UNCLAIMED,
     )
     db.add(bill)
     db.commit()

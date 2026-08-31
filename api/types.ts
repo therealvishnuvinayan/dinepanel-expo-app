@@ -54,3 +54,33 @@ export type ApiClaimResponse = {
   transaction: ApiRewardTransaction;
   updated_balance: string;
 };
+
+export type ApiMerchantBill = {
+  id: string;
+  restaurant: ApiRestaurant;
+  bill_number: string;
+  bill_amount: string;
+  bill_date: string;
+  reward_percentage: string;
+  reward_amount: string;
+  source: 'MERCHANT';
+  claim_status: 'UNCLAIMED' | 'CLAIMED' | 'EXPIRED' | 'CANCELLED';
+  created_at: string;
+  claimed_at: string | null;
+};
+
+export type ApiClaimPreviewResponse = {
+  bill: ApiMerchantBill;
+  restaurant: ApiRestaurant;
+  reward_percentage: string;
+  reward_amount: string;
+  expires_at: string;
+};
+
+export type ApiTokenClaimResponse = {
+  reward_amount: string;
+  transaction: ApiRewardTransaction;
+  updated_balance: string;
+  restaurant: ApiRestaurant;
+  bill: ApiMerchantBill;
+};

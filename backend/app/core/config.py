@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 7
     dev_otp: str = Field(default="123456", min_length=6, max_length=6)
-    cors_origins: str = "http://localhost:8081,http://localhost:19006,http://localhost:8082"
+    cors_origins: str = "http://localhost:8081,http://localhost:19006,http://localhost:5173"
+    claim_base_url: str = "dinepanel://claim"
+    claim_token_expire_minutes: int = Field(default=10, ge=1, le=60)
 
     model_config = SettingsConfigDict(
         env_file=".env",

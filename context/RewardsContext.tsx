@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import * as billsApi from '@/api/bills';
+import * as claimsApi from '@/api/claims';
 import * as restaurantsApi from '@/api/restaurants';
 import * as rewardsApi from '@/api/rewards';
 import type { ApiDemoBill, ApiRestaurant, ApiRewardTransaction } from '@/api/types';
@@ -30,6 +31,7 @@ type RewardsContextValue = {
   getRestaurant: (idOrSlug: string | undefined) => Restaurant | undefined;
   loadRestaurant: (idOrSlug: string) => Promise<Restaurant>;
   createDemoBill: () => Promise<DemoBill>;
+  previewClaimToken: (token: string) => Promise<DemoBill>;
   claimCurrentBill: () => Promise<RewardClaimResult>;
   clearError: () => void;
 };
@@ -106,6 +108,7 @@ export function RewardsProvider({ children }: PropsWithChildren) {
   const [transactions, setTransactions] = useState<RewardTransaction[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentBill, setCurrentBill] = useState<DemoBill | null>(null);
+  const [currentClaimToken, setCurrentClaimToken] = useState<string | null>(null);
   const [lastClaim, setLastClaim] = useState<RewardClaimResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -143,6 +146,7 @@ export function RewardsProvider({ children }: PropsWithChildren) {
       setTransactions([]);
       setRestaurants([]);
       setCurrentBill(null);
+      setCurrentClaimToken(null);
       setLastClaim(null);
       setError(null);
     }
@@ -191,6 +195,7 @@ export function RewardsProvider({ children }: PropsWithChildren) {
 
       const bill = mapApiBill(await billsApi.createDemoBill(greenChilli.id, '500.00'));
       setCurrentBill(bill);
+      setCurrentClaimToken(null);
       setLastClaim(null);
       return bill;
     } catch (createError) {
@@ -199,16 +204,46 @@ export function RewardsProvider({ children }: PropsWithChildren) {
     }
   }, [restaurants]);
 
-  const claimCurrentBill = useCallback(async () => {
-    if (!currentBill) throw new Error('Create a demo bill before claiming a reward.');
+  const previewClaimToken = useCallback(async (token: string) => {
     setError(null);
     try {
-      const response = await billsApi.claimBill(currentBill.id);
+      const response = await claimsApi.previewClaim(token);
+      const bill: DemoBill = {
+        id: response.bill.id,
+        restaurant: mapApiRestaurant(response.bill.restaurant),
+        billNumber: response.bill.bill_number,
+        billAmount: Number(response.bill.bill_amount),
+        billDate: response.bill.bill_date,
+        rewardPercentage: Number(response.reward_percentage),
+        rewardAmount: Number(response.reward_amount),
+        claimable: response.bill.claim_status === 'UNCLAIMED',
+      };
+      setCurrentBill(bill);
+      setCurrentClaimToken(token);
+      setLastClaim(null);
+      return bill;
+    } catch (previewError) {
+      setError(messageFrom(previewError));
+      throw previewError;
+    }
+  }, []);
+
+  const claimCurrentBill = useCallback(async () => {
+    if (!currentBill) throw new Error('Scan a bill before claiming a reward.');
+    setError(null);
+    try {
+      let claimedRestaurant = currentBill.restaurant;
+      const response = currentClaimToken
+        ? await claimsApi.claimToken(currentClaimToken).then((tokenResponse) => {
+            claimedRestaurant = mapApiRestaurant(tokenResponse.restaurant);
+            return tokenResponse;
+          })
+        : await billsApi.claimBill(currentBill.id);
       const result: RewardClaimResult = {
         rewardAmount: Number(response.reward_amount),
         transaction: mapApiTransaction(response.transaction),
         updatedBalance: Number(response.updated_balance),
-        restaurant: currentBill.restaurant,
+        restaurant: claimedRestaurant,
       };
       setBalance(result.updatedBalance);
       setTransactions((items) => [
@@ -222,7 +257,7 @@ export function RewardsProvider({ children }: PropsWithChildren) {
       setError(messageFrom(claimError));
       throw claimError;
     }
-  }, [currentBill]);
+  }, [currentBill, currentClaimToken]);
 
   const monthlyEarned = useMemo(
     () => {
@@ -254,6 +289,7 @@ export function RewardsProvider({ children }: PropsWithChildren) {
       getRestaurant,
       loadRestaurant,
       createDemoBill,
+      previewClaimToken,
       claimCurrentBill,
       clearError: () => setError(null),
     }),
@@ -270,6 +306,7 @@ export function RewardsProvider({ children }: PropsWithChildren) {
       loadRestaurant,
       loadData,
       monthlyEarned,
+      previewClaimToken,
       restaurants,
       transactions,
     ],

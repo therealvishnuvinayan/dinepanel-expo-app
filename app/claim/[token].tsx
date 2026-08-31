@@ -1,0 +1,64 @@
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Link2Off } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+
+import { Button } from '@/components/ui/Button';
+import { Screen } from '@/components/ui/Screen';
+import { Wordmark } from '@/components/ui/Wordmark';
+import { colors, spacing, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
+import { useRewards } from '@/context/RewardsContext';
+import { parseClaimToken } from '@/utils/claimUrl';
+
+export default function ClaimDeepLinkScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ token?: string | string[] }>();
+  const { isAuthenticated, isLoading } = useAuth();
+  const { previewClaimToken } = useRewards();
+  const [error, setError] = useState('');
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || started.current) return;
+    started.current = true;
+    const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
+    if (!rawToken) {
+      setError('This claim link is incomplete.');
+      return;
+    }
+    try {
+      const token = parseClaimToken(rawToken, true);
+      previewClaimToken(token)
+        .then(() => router.replace('/bill/confirm'))
+        .catch((claimError) => setError(claimError instanceof Error ? claimError.message : 'Unable to open this claim.'));
+    } catch (claimError) {
+      setError(claimError instanceof Error ? claimError.message : 'Unable to open this claim.');
+    }
+  }, [isAuthenticated, isLoading, params.token, previewClaimToken, router]);
+
+  return (
+    <Screen contentStyle={styles.content} edges={['top', 'bottom', 'left', 'right']} scroll={false}>
+      <Wordmark />
+      <View style={styles.state}>
+        {error ? (
+          <>
+            <Link2Off color={colors.textTertiary} size={42} />
+            <Text style={styles.title}>Claim link unavailable</Text>
+            <Text style={styles.copy}>{error}</Text>
+            <Button label="Open scanner" onPress={() => router.replace('/(tabs)/scan')} />
+          </>
+        ) : (
+          <><ActivityIndicator color={colors.primary} size="large" /><Text style={styles.copy}>Verifying your restaurant bill…</Text></>
+        )}
+      </View>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { padding: spacing.xl },
+  state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
+  title: { color: colors.text, fontSize: typography.heading, fontWeight: '700' },
+  copy: { color: colors.textSecondary, fontSize: typography.small, lineHeight: 21, textAlign: 'center', maxWidth: 290 },
+});
