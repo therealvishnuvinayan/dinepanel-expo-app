@@ -34,14 +34,6 @@ yarn-error.*
 .env
 .env.*
 !.env.example
-!backend/.env.example
-
-# Python backend
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.venv/
-*.db
 
 # typescript
 *.tsbuildinfo

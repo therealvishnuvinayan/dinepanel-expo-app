@@ -1,1 +1,0 @@
-"""DinePanel backend test suite."""
