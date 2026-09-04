@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Clock3, Heart, MapPin, Navigation, Star } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/ui/AppHeader';
@@ -13,34 +13,64 @@ import { useRewards } from '@/context/RewardsContext';
 import type { Restaurant } from '@/types';
 import { formatAED } from '@/utils/format';
 
+type RestaurantLoadState = {
+  routeId: string | undefined;
+  restaurant: Restaurant | undefined;
+  loading: boolean;
+  error: string;
+};
+
 export default function RestaurantDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getRestaurant, loadRestaurant, transactions } = useRewards();
-  const [restaurant, setRestaurant] = useState<Restaurant | undefined>(() => getRestaurant(id));
-  const [loading, setLoading] = useState(!restaurant);
-  const [error, setError] = useState('');
+  const cachedRestaurant = getRestaurant(id);
+  const [loadState, setLoadState] = useState<RestaurantLoadState>(() => ({
+    routeId: id,
+    restaurant: cachedRestaurant,
+    loading: !cachedRestaurant,
+    error: '',
+  }));
   const [favourite, setFavourite] = useState(true);
+  const currentLoadState = loadState.routeId === id
+    ? loadState
+    : { routeId: id, restaurant: cachedRestaurant, loading: !cachedRestaurant, error: '' };
+  const { restaurant, loading, error } = currentLoadState;
+
+  const fetchRestaurant = useCallback(async (restaurantId: string, isActive: () => boolean) => {
+    try {
+      const loaded = await loadRestaurant(restaurantId);
+      if (isActive()) {
+        setLoadState({ routeId: restaurantId, restaurant: loaded, loading: false, error: '' });
+      }
+    } catch (loadError) {
+      if (isActive()) {
+        setLoadState({
+          routeId: restaurantId,
+          restaurant: getRestaurant(restaurantId),
+          loading: false,
+          error: loadError instanceof Error ? loadError.message : 'Unable to load this restaurant.',
+        });
+      }
+    }
+  }, [getRestaurant, loadRestaurant]);
 
   useEffect(() => {
     if (typeof id !== 'string') return;
     let active = true;
-    setLoading(true);
-    setError('');
-    loadRestaurant(id)
-      .then((loaded) => {
-        if (active) setRestaurant(loaded);
-      })
-      .catch((loadError) => {
-        if (active) setError(loadError instanceof Error ? loadError.message : 'Unable to load this restaurant.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    Promise.resolve().then(() => {
+      if (active) void fetchRestaurant(id, () => active);
+    });
     return () => {
       active = false;
     };
-  }, [id, loadRestaurant]);
+  }, [fetchRestaurant, id]);
+
+  const retry = () => {
+    if (typeof id !== 'string') return;
+    setLoadState({ routeId: id, restaurant: cachedRestaurant, loading: true, error: '' });
+    void fetchRestaurant(id, () => true);
+  };
 
   if (!restaurant) {
     return (
@@ -50,7 +80,7 @@ export default function RestaurantDetailScreen() {
           <DataState
             loading={loading}
             message={error || undefined}
-            onRetry={error && typeof id === 'string' ? () => void loadRestaurant(id).then(setRestaurant) : undefined}
+            onRetry={error && typeof id === 'string' ? retry : undefined}
             title={loading ? 'Loading restaurant' : 'Restaurant unavailable'}
           />
         </View>

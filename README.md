@@ -8,7 +8,7 @@ The shared FastAPI backend is maintained and deployed from the separate [dinepan
 
 Requirements:
 
-- Node.js and npm
+- Node.js `>=22.13.0` and npm, as required by Expo SDK 57 and React Native 0.86
 - An Expo-supported iOS simulator, Android emulator, browser, or physical device
 
 Install and start the Customer app:

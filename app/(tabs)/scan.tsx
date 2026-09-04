@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   subtitle: { color: 'rgba(255,255,255,0.62)', fontSize: typography.small, lineHeight: 21, marginTop: spacing.sm, maxWidth: 350 },
   scannerWrap: { flex: 1, justifyContent: 'center', paddingVertical: spacing.lg },
   scanner: { width: '100%', aspectRatio: 1, maxHeight: 344, borderRadius: 30, backgroundColor: colors.darkMuted, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  cameraShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(4,19,13,0.14)' },
+  cameraShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(4,19,13,0.14)' },
   corner: { position: 'absolute', width: 44, height: 44, borderColor: colors.white },
   topLeft: { top: 20, left: 20, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 14 },
   topRight: { top: 20, right: 20, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 14 },

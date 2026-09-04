@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Link2Off } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
@@ -18,34 +18,38 @@ export default function ClaimDeepLinkScreen() {
   const { previewClaimToken } = useRewards();
   const [error, setError] = useState('');
   const started = useRef(false);
+  const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
+  const parsedClaim = useMemo(() => {
+    if (!rawToken) return { token: null, error: 'This claim link is incomplete.' };
+    try {
+      return { token: parseClaimToken(rawToken, true), error: '' };
+    } catch (claimError) {
+      return {
+        token: null,
+        error: claimError instanceof Error ? claimError.message : 'Unable to open this claim.',
+      };
+    }
+  }, [rawToken]);
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated || started.current) return;
+    if (isLoading || !isAuthenticated || started.current || !parsedClaim.token) return;
     started.current = true;
-    const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
-    if (!rawToken) {
-      setError('This claim link is incomplete.');
-      return;
-    }
-    try {
-      const token = parseClaimToken(rawToken, true);
-      previewClaimToken(token)
-        .then(() => router.replace('/bill/confirm'))
-        .catch((claimError) => setError(claimError instanceof Error ? claimError.message : 'Unable to open this claim.'));
-    } catch (claimError) {
-      setError(claimError instanceof Error ? claimError.message : 'Unable to open this claim.');
-    }
-  }, [isAuthenticated, isLoading, params.token, previewClaimToken, router]);
+    previewClaimToken(parsedClaim.token)
+      .then(() => router.replace('/bill/confirm'))
+      .catch((claimError) => setError(claimError instanceof Error ? claimError.message : 'Unable to open this claim.'));
+  }, [isAuthenticated, isLoading, parsedClaim.token, previewClaimToken, router]);
+
+  const visibleError = parsedClaim.error || error;
 
   return (
     <Screen contentStyle={styles.content} edges={['top', 'bottom', 'left', 'right']} scroll={false}>
       <Wordmark />
       <View style={styles.state}>
-        {error ? (
+        {visibleError ? (
           <>
             <Link2Off color={colors.textTertiary} size={42} />
             <Text style={styles.title}>Claim link unavailable</Text>
-            <Text style={styles.copy}>{error}</Text>
+            <Text style={styles.copy}>{visibleError}</Text>
             <Button label="Open scanner" onPress={() => router.replace('/(tabs)/scan')} />
           </>
         ) : (
