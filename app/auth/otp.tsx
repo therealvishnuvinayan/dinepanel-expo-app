@@ -98,12 +98,14 @@ export default function OtpScreen() {
             />
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <View style={styles.demoNote}>
-              <Text style={styles.demoLabel}>Prototype code</Text>
-              <Pressable onPress={() => setCode('123456')}>
-                <Text style={styles.demoCode}>123456</Text>
-              </Pressable>
-            </View>
+            {__DEV__ ? (
+              <View style={styles.demoNote}>
+                <Text style={styles.demoLabel}>Prototype code</Text>
+                <Pressable onPress={() => setCode('123456')}>
+                  <Text style={styles.demoCode}>123456</Text>
+                </Pressable>
+              </View>
+            ) : null}
             <Pressable disabled={resending} onPress={resend} style={styles.resend}>
               <Text style={styles.resendText}>Didn’t receive it? </Text>
               <Text style={styles.resendAction}>{resending ? 'Sending…' : 'Send again'}</Text>

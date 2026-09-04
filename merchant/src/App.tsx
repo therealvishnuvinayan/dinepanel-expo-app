@@ -46,8 +46,8 @@ function StatusBadge({ status }: { status: ClaimStatus }) {
 }
 
 function Login({ onAuthenticated }: { onAuthenticated: (token: string) => void }) {
-  const [phone, setPhone] = useState("+971500000001");
-  const [otp, setOtp] = useState("123456");
+  const [phone, setPhone] = useState(import.meta.env.DEV ? "+971500000001" : "");
+  const [otp, setOtp] = useState(import.meta.env.DEV ? "123456" : "");
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -123,7 +123,9 @@ function Login({ onAuthenticated }: { onAuthenticated: (token: string) => void }
           {step === "otp" && (
             <button type="button" className="text-button" onClick={() => setStep("phone")}>Use another number</button>
           )}
-          <div className="demo-note"><span>Demo access</span> +971500000001 · OTP 123456</div>
+          {import.meta.env.DEV ? (
+            <div className="demo-note"><span>Demo access</span> +971500000001 · OTP 123456</div>
+          ) : null}
         </form>
       </section>
     </main>

@@ -41,6 +41,11 @@ Sign in → scan claim code → server preview → confirm bill → claim reward
 
 Claim QR values are parsed by `utils/claimUrl.ts`. Bill values and reward calculations come from the shared API rather than from QR payload fields.
 
+The tappable prototype OTP helper is compiled into development builds only. Customer
+and retained legacy Merchant release builds never display or prefill the static
+development credentials, and the production API does not accept the development OTP
+provider.
+
 ## Validation
 
 Run the existing Customer checks from the repository root:
