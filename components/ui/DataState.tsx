@@ -16,7 +16,7 @@ export function DataState({ title, message, loading = false, onRetry }: DataStat
       <Text style={styles.title}>{title}</Text>
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {onRetry ? (
-        <Pressable onPress={onRetry} style={({ pressed }) => [styles.retry, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.retry, pressed && styles.pressed]}>
           <Text style={styles.retryText}>Try again</Text>
         </Pressable>
       ) : null}

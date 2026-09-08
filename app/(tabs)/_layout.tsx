@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   scanIconActive: { backgroundColor: colors.primaryPressed },
-  label: { color: colors.textTertiary, fontSize: 10, fontWeight: '600' },
+  label: { color: colors.textTertiaryAccessible, fontSize: 10, fontWeight: '600' },
   labelActive: { color: colors.primary, fontWeight: '700' },
   pressed: { opacity: 0.62 },
 });

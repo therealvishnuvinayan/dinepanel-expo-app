@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   footerLabel: {
-    color: colors.textSecondary,
+    color: colors.textSecondaryAccessible,
     fontSize: typography.caption,
     marginBottom: 3,
   },
@@ -130,4 +130,3 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
 });
-

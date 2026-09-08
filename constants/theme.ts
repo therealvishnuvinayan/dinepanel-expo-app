@@ -11,6 +11,8 @@ export const colors = {
   text: '#111312',
   textSecondary: '#6D726F',
   textTertiary: '#9A9E9C',
+  textSecondaryAccessible: '#5F6662',
+  textTertiaryAccessible: '#68706C',
   border: '#E7EAE8',
   borderStrong: '#D8DEDA',
   white: '#FFFFFF',
@@ -70,4 +72,3 @@ export const layout = {
   buttonHeight: 56,
   tabBarHeight: 68,
 } as const;
-

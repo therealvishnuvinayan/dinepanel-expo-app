@@ -1,4 +1,5 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
+import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
@@ -26,6 +27,7 @@ function SessionRedirector() {
 function RootStack() {
   return (
     <>
+      <Head><title>DinePanel Customer</title></Head>
       <SessionRedirector />
       <StatusBar style="dark" />
       <Stack

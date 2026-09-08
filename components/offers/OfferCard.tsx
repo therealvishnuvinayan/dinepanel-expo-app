@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   restaurant: {
-    color: colors.textSecondary,
+    color: colors.textSecondaryAccessible,
     fontSize: typography.small,
     fontWeight: '600',
     marginBottom: spacing.xs,
@@ -102,4 +102,3 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }],
   },
 });
-
