@@ -1,14 +1,15 @@
-import { ArrowUpRight, ScanLine } from 'lucide-react-native';
+import { Gift, ScanLine } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { formatAED } from '@/utils/format';
 
 type RewardBalanceProps = {
-  balance: number;
-  monthlyEarned?: number;
+  balance: number | null;
+  monthlyEarned?: number | null;
   onScan?: () => void;
   compact?: boolean;
+  loading?: boolean;
 };
 
 export function RewardBalance({
@@ -16,16 +17,23 @@ export function RewardBalance({
   monthlyEarned,
   onScan,
   compact = false,
+  loading = false,
 }: RewardBalanceProps) {
   return (
     <View style={[styles.card, compact && styles.cardCompact]}>
       <View style={styles.topRow}>
         <View>
           <Text style={styles.label}>Available rewards</Text>
-          <Text style={[styles.amount, compact && styles.amountCompact]}>{formatAED(balance)}</Text>
+          {loading ? (
+            <View accessibilityLabel="Loading reward balance" style={styles.amountPlaceholder} />
+          ) : (
+            <Text style={[styles.amount, compact && styles.amountCompact]}>
+              {balance === null ? 'Unavailable' : formatAED(balance)}
+            </Text>
+          )}
         </View>
         <View style={styles.sparkIcon}>
-          <ArrowUpRight color={colors.primary} size={20} strokeWidth={2.2} />
+          <Gift color={colors.primary} size={20} strokeWidth={2.2} />
         </View>
       </View>
       {monthlyEarned !== undefined || onScan ? (
@@ -33,7 +41,9 @@ export function RewardBalance({
           {monthlyEarned !== undefined ? (
             <View>
               <Text style={styles.footerLabel}>This month earned</Text>
-              <Text style={styles.footerAmount}>{formatAED(monthlyEarned)}</Text>
+              <Text style={styles.footerAmount}>
+                {monthlyEarned === null ? '—' : formatAED(monthlyEarned)}
+              </Text>
             </View>
           ) : (
             <View />
@@ -81,6 +91,12 @@ const styles = StyleSheet.create({
   },
   amountCompact: {
     fontSize: 32,
+  },
+  amountPlaceholder: {
+    width: 164,
+    height: 38,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primaryMuted,
   },
   sparkIcon: {
     width: 40,

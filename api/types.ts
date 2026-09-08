@@ -38,23 +38,6 @@ export type ApiRewardTransaction = {
   created_at: string;
 };
 
-export type ApiDemoBill = {
-  id: string;
-  restaurant: ApiRestaurant;
-  bill_number: string;
-  bill_amount: string;
-  bill_date: string;
-  reward_percentage: string;
-  reward_amount: string;
-  claimable: boolean;
-};
-
-export type ApiClaimResponse = {
-  reward_amount: string;
-  transaction: ApiRewardTransaction;
-  updated_balance: string;
-};
-
 export type ApiMerchantBill = {
   id: string;
   restaurant: ApiRestaurant;

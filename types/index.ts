@@ -6,32 +6,32 @@ export type Restaurant = {
   name: string;
   cuisine: string;
   rewardPercent: number;
-  distance: string;
-  neighborhood: string;
-  rating: number;
   image: ImageSourcePropType;
-  accent: string;
   description: string;
   address: string;
-  hours: string;
-  offer?: string;
-  popular?: boolean;
+  area: string;
+  city: string;
+  latitude: number | null;
+  longitude: number | null;
 };
 
-export type TransactionType = 'earned' | 'redeemed';
+export type TransactionKind = 'earn' | 'redeem' | 'adjustment' | 'reversal';
+export type TransactionStatus = 'pending' | 'completed' | 'reversed';
 
 export type RewardTransaction = {
   id: string;
-  restaurantId: string;
+  restaurantId: string | null;
   restaurantName: string;
   cuisine: string;
   amount: number;
   date: string;
-  createdAt?: string;
-  type: TransactionType;
+  createdAt: string;
+  kind: TransactionKind;
+  status: TransactionStatus;
+  label: string;
 };
 
-export type DemoBill = {
+export type ClaimBill = {
   id: string;
   restaurant: Restaurant;
   billNumber: string;
@@ -40,6 +40,7 @@ export type DemoBill = {
   rewardPercentage: number;
   rewardAmount: number;
   claimable: boolean;
+  expiresAt: string;
 };
 
 export type RewardClaimResult = {
@@ -47,14 +48,4 @@ export type RewardClaimResult = {
   transaction: RewardTransaction;
   updatedBalance: number;
   restaurant: Restaurant;
-};
-
-export type Offer = {
-  id: string;
-  restaurantId: string;
-  restaurantName: string;
-  title: string;
-  detail: string;
-  eyebrow: string;
-  accent: string;
 };

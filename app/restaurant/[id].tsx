@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Clock3, Heart, MapPin, Navigation, Star } from 'lucide-react-native';
+import { Gift, MapPin, Navigation } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Button } from '@/components/ui/Button';
@@ -31,7 +31,6 @@ export default function RestaurantDetailScreen() {
     loading: !cachedRestaurant,
     error: '',
   }));
-  const [favourite, setFavourite] = useState(true);
   const currentLoadState = loadState.routeId === id
     ? loadState
     : { routeId: id, restaurant: cachedRestaurant, loading: !cachedRestaurant, error: '' };
@@ -40,9 +39,7 @@ export default function RestaurantDetailScreen() {
   const fetchRestaurant = useCallback(async (restaurantId: string, isActive: () => boolean) => {
     try {
       const loaded = await loadRestaurant(restaurantId);
-      if (isActive()) {
-        setLoadState({ routeId: restaurantId, restaurant: loaded, loading: false, error: '' });
-      }
+      if (isActive()) setLoadState({ routeId: restaurantId, restaurant: loaded, loading: false, error: '' });
     } catch (loadError) {
       if (isActive()) {
         setLoadState({
@@ -88,95 +85,78 @@ export default function RestaurantDetailScreen() {
     );
   }
 
-  const latestVisit = transactions.find(
-    (transaction) => transaction.restaurantId === restaurant.id,
-  );
+  const latestVisit = transactions.find((transaction) => transaction.restaurantId === restaurant.id);
+  const hasCoordinates = restaurant.latitude !== null && restaurant.longitude !== null;
+  const locationLabel = [restaurant.area, restaurant.city].filter(Boolean).join(', ');
+
+  const openDirections = async () => {
+    if (!hasCoordinates) return;
+    const latitude = restaurant.latitude!;
+    const longitude = restaurant.longitude!;
+    const label = encodeURIComponent(restaurant.name);
+    const url = Platform.select({
+      ios: `maps://?q=${label}&ll=${latitude},${longitude}`,
+      android: `geo:${latitude},${longitude}?q=${latitude},${longitude}(${label})`,
+      default: `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
+    });
+    if (url) await Linking.openURL(url);
+  };
 
   return (
     <Screen contentStyle={styles.content} edges={['top', 'bottom', 'left', 'right']}>
       <AppHeader showBack title="Restaurant" />
       <View style={styles.heroWrap}>
-        <Image source={restaurant.image} style={styles.hero} />
-        <Pressable
-          accessibilityLabel={favourite ? 'Remove from favourites' : 'Add to favourites'}
-          onPress={() => setFavourite((current) => !current)}
-          style={({ pressed }) => [styles.favourite, pressed && styles.pressed]}
-        >
-          <Heart
-            color={favourite ? colors.white : colors.text}
-            fill={favourite ? colors.white : 'transparent'}
-            size={20}
-            strokeWidth={2}
-          />
-        </Pressable>
+        <Image resizeMode="cover" source={restaurant.image} style={styles.hero} />
       </View>
 
       <View style={styles.main}>
         <View style={styles.titleRow}>
           <View style={styles.titleBody}>
             <Text style={styles.name}>{restaurant.name}</Text>
-            <Text style={styles.cuisine}>{restaurant.cuisine} · {restaurant.neighborhood}</Text>
+            <Text style={styles.cuisine}>{restaurant.cuisine}</Text>
           </View>
           <Pill label={`${restaurant.rewardPercent}% rewards`} tone="green" />
         </View>
 
-        <View style={styles.quickFacts}>
-          <View style={styles.fact}>
-            <Star color={colors.primary} fill={colors.primary} size={16} strokeWidth={1.8} />
-            <Text style={styles.factValue}>{restaurant.rating}</Text>
-            <Text style={styles.factLabel}>rating</Text>
+        <View style={styles.rewardCard}>
+          <View style={styles.rewardIcon}>
+            <Gift color={colors.primary} size={22} strokeWidth={2} />
           </View>
-          <View style={styles.factDivider} />
-          <View style={styles.fact}>
-            <MapPin color={colors.primary} size={16} strokeWidth={2} />
-            <Text style={styles.factValue}>{restaurant.distance}</Text>
-            <Text style={styles.factLabel}>away</Text>
-          </View>
-          <View style={styles.factDivider} />
-          <View style={styles.fact}>
-            <Clock3 color={colors.primary} size={16} strokeWidth={2} />
-            <Text style={styles.factValue}>Open</Text>
-            <Text style={styles.factLabel}>now</Text>
+          <View style={styles.rewardBody}>
+            <Text style={styles.rewardTitle}>Earn {restaurant.rewardPercent}% in rewards</Text>
+            <Text style={styles.rewardCopy}>Scan an eligible bill from this restaurant to preview and claim your reward.</Text>
           </View>
         </View>
 
-        <Text style={styles.description}>{restaurant.description}</Text>
-
-        {restaurant.offer ? (
-          <View style={styles.offer}>
-            <Text style={styles.offerEyebrow}>Current offer</Text>
-            <Text style={styles.offerTitle}>{restaurant.offer}</Text>
-            <Text style={styles.offerDetail}>Rewards are calculated automatically after you scan and confirm your bill.</Text>
-          </View>
-        ) : null}
+        {restaurant.description ? <Text style={styles.description}>{restaurant.description}</Text> : null}
 
         <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Visit</Text>
+          <Text style={styles.sectionTitle}>Location</Text>
           <View style={styles.infoRow}>
             <View style={styles.infoIcon}><MapPin color={colors.textSecondary} size={18} strokeWidth={2} /></View>
             <View style={styles.infoBody}>
               <Text style={styles.infoTitle}>{restaurant.address}</Text>
-              <Text style={styles.infoSub}>{restaurant.distance} from you</Text>
+              {locationLabel ? <Text style={styles.infoSub}>{locationLabel}</Text> : null}
             </View>
-            <Navigation color={colors.primary} size={19} strokeWidth={2} />
-          </View>
-          <View style={styles.infoDivider} />
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}><Clock3 color={colors.textSecondary} size={18} strokeWidth={2} /></View>
-            <View style={styles.infoBody}>
-              <Text style={styles.infoTitle}>{restaurant.hours}</Text>
-              <Text style={styles.infoSub}>Hours may vary on public holidays</Text>
-            </View>
+            {hasCoordinates ? (
+              <Pressable
+                accessibilityLabel="Open directions"
+                accessibilityRole="button"
+                onPress={() => void openDirections()}
+                style={({ pressed }) => [styles.directions, pressed && styles.pressed]}
+              >
+                <Navigation color={colors.primary} size={19} strokeWidth={2} />
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
         {latestVisit ? (
           <View style={styles.visitCard}>
-            <Text style={styles.visitLabel}>Your last reward activity</Text>
+            <Text style={styles.visitLabel}>Your latest activity here</Text>
             <Text style={styles.visitDate}>{latestVisit.date}</Text>
             <Text style={styles.visitReward}>
-              {latestVisit.type === 'earned' ? 'You earned ' : 'You used '}
-              {formatAED(Math.abs(latestVisit.amount))}
+              {latestVisit.label} · {latestVisit.amount > 0 ? '+' : latestVisit.amount < 0 ? '−' : ''}{formatAED(Math.abs(latestVisit.amount))}
             </Text>
           </View>
         ) : null}
@@ -191,41 +171,26 @@ const styles = StyleSheet.create({
   content: { paddingBottom: spacing.xxxl },
   stateWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.lg },
   heroWrap: { marginHorizontal: spacing.lg, marginTop: spacing.xs },
-  hero: { width: '100%', height: 248, borderRadius: radius.xl, backgroundColor: colors.surface },
-  favourite: {
-    position: 'absolute', right: spacing.md, top: spacing.md, width: 44, height: 44,
-    borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(17,19,18,0.34)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.34)',
-  },
+  hero: { width: '100%', height: 272, borderRadius: radius.xl, backgroundColor: colors.surface },
   main: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   titleBody: { flex: 1 },
   name: { color: colors.text, fontSize: typography.title, fontWeight: '800', letterSpacing: -0.75 },
   cuisine: { color: colors.textSecondary, fontSize: typography.small, marginTop: 5 },
-  quickFacts: {
-    marginTop: spacing.xl, height: 70, borderRadius: radius.lg, backgroundColor: colors.surface,
-    borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center',
-  },
-  fact: { flex: 1, alignItems: 'center', gap: 2 },
-  factValue: { color: colors.text, fontSize: typography.caption, fontWeight: '700' },
-  factLabel: { color: colors.textTertiary, fontSize: 10 },
-  factDivider: { width: 1, height: 34, backgroundColor: colors.border },
+  rewardCard: { marginTop: spacing.xl, borderRadius: radius.xl, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primaryMuted, padding: spacing.lg, flexDirection: 'row', gap: spacing.sm },
+  rewardIcon: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  rewardBody: { flex: 1 },
+  rewardTitle: { color: colors.text, fontSize: typography.body, fontWeight: '700' },
+  rewardCopy: { color: colors.textSecondaryAccessible, fontSize: typography.caption, lineHeight: 18, marginTop: 5 },
   description: { color: colors.textSecondary, fontSize: typography.small, lineHeight: 22, marginTop: spacing.xl },
-  offer: {
-    marginTop: spacing.xl, borderRadius: radius.xl, backgroundColor: colors.primarySoft,
-    borderWidth: 1, borderColor: colors.primaryMuted, padding: spacing.lg,
-  },
-  offerEyebrow: { color: colors.primary, fontSize: typography.caption, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3 },
-  offerTitle: { color: colors.text, fontSize: typography.heading, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, marginTop: spacing.sm },
-  offerDetail: { color: colors.textSecondary, fontSize: typography.caption, lineHeight: 18, marginTop: spacing.sm },
   infoSection: { marginTop: spacing.xxxl },
   sectionTitle: { color: colors.text, fontSize: typography.heading, fontWeight: '700', letterSpacing: -0.4, marginBottom: spacing.md },
   infoRow: { flexDirection: 'row', alignItems: 'center', minHeight: 66, gap: spacing.sm },
   infoIcon: { width: 40, height: 40, borderRadius: radius.sm, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   infoBody: { flex: 1 },
   infoTitle: { color: colors.text, fontSize: typography.small, fontWeight: '600', lineHeight: 20 },
-  infoSub: { color: colors.textTertiary, fontSize: typography.caption, marginTop: 3 },
-  infoDivider: { height: 1, backgroundColor: colors.border, marginLeft: 52 },
+  infoSub: { color: colors.textTertiaryAccessible, fontSize: typography.caption, marginTop: 3 },
+  directions: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   visitCard: { marginTop: spacing.xl, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg },
   visitLabel: { color: colors.textSecondary, fontSize: typography.caption },
   visitDate: { color: colors.text, fontSize: typography.body, fontWeight: '700', marginTop: 5 },

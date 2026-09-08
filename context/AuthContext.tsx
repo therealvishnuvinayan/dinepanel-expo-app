@@ -9,15 +9,19 @@ import {
 } from 'react';
 
 import * as authApi from '@/api/auth';
+import type { RequestOtpResponse } from '@/api/auth';
 import { setApiAccessToken, setUnauthorizedHandler } from '@/api/client';
 import { getStoredToken, removeStoredToken, storeToken } from '@/api/tokenStorage';
 import type { ApiUser } from '@/api/types';
 
+export type AuthStatus = 'RESTORING' | 'AUTHENTICATED' | 'UNAUTHENTICATED';
+
 type AuthContextValue = {
   user: ApiUser | null;
+  authStatus: AuthStatus;
   isLoading: boolean;
   isAuthenticated: boolean;
-  requestOtp: (phone: string) => Promise<void>;
+  requestOtp: (phone: string) => Promise<RequestOtpResponse>;
   verifyOtp: (phone: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -26,11 +30,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<ApiUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('RESTORING');
 
   const clearSession = useCallback(async () => {
     setApiAccessToken(null);
     setUser(null);
+    setAuthStatus('UNAUTHENTICATED');
     await removeStoredToken();
   }, []);
 
@@ -44,14 +49,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const restoreSession = async () => {
       try {
         const token = await getStoredToken();
-        if (!token) return;
+        if (!active) return;
+        if (!token) {
+          setAuthStatus('UNAUTHENTICATED');
+          return;
+        }
         setApiAccessToken(token);
         const restoredUser = await authApi.getMe();
-        if (active) setUser(restoredUser);
+        if (!active) return;
+        setUser(restoredUser);
+        setAuthStatus('AUTHENTICATED');
       } catch {
-        await clearSession();
-      } finally {
-        if (active) setIsLoading(false);
+        if (active) await clearSession();
       }
     };
     restoreSession();
@@ -61,7 +70,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [clearSession]);
 
   const requestOtp = useCallback(async (phone: string) => {
-    await authApi.requestOtp(phone);
+    return authApi.requestOtp(phone);
   }, []);
 
   const verifyOtp = useCallback(async (phone: string, otp: string) => {
@@ -69,18 +78,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setApiAccessToken(response.access_token);
     await storeToken(response.access_token);
     setUser(response.user);
+    setAuthStatus('AUTHENTICATED');
   }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      isLoading,
-      isAuthenticated: Boolean(user),
+      authStatus,
+      isLoading: authStatus === 'RESTORING',
+      isAuthenticated: authStatus === 'AUTHENTICATED',
       requestOtp,
       verifyOtp,
       logout: clearSession,
     }),
-    [clearSession, isLoading, requestOtp, user, verifyOtp],
+    [authStatus, clearSession, requestOtp, user, verifyOtp],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

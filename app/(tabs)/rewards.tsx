@@ -1,36 +1,61 @@
-import { useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { RewardBalance } from '@/components/rewards/RewardBalance';
 import { TransactionRow } from '@/components/rewards/TransactionRow';
-import { Pill } from '@/components/ui/Pill';
 import { DataState } from '@/components/ui/DataState';
+import { Pill } from '@/components/ui/Pill';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { useRewards } from '@/context/RewardsContext';
 
-const tabs = ['Activity', 'Earned', 'Redeemed'] as const;
+const tabs = ['Activity', 'Earned', 'Used'] as const;
 type RewardsTab = (typeof tabs)[number];
 
 export default function RewardsScreen() {
-  const { balance, transactions, isLoading, error, refresh } = useRewards();
+  const {
+    balance,
+    transactions,
+    isLoading,
+    isRefreshing,
+    error,
+    refresh,
+    refreshIfStale,
+  } = useRewards();
   const [activeTab, setActiveTab] = useState<RewardsTab>('Activity');
 
+  useFocusEffect(
+    useCallback(() => {
+      void refreshIfStale();
+    }, [refreshIfStale]),
+  );
+
   const visibleTransactions = useMemo(() => {
-    if (activeTab === 'Earned') return transactions.filter((item) => item.type === 'earned');
-    if (activeTab === 'Redeemed') return transactions.filter((item) => item.type === 'redeemed');
+    if (activeTab === 'Earned') return transactions.filter((item) => item.kind === 'earn');
+    if (activeTab === 'Used') return transactions.filter((item) => item.kind === 'redeem');
     return transactions;
   }, [activeTab, transactions]);
 
+  const showInitialError = Boolean(error && balance === null);
+
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen
+      contentStyle={styles.content}
+      onRefresh={() => void refresh()}
+      refreshing={isRefreshing}
+    >
       <View style={styles.heading}>
         <Text style={styles.eyebrow}>Your rewards</Text>
         <Text style={styles.title}>Rewards</Text>
       </View>
 
       <View style={styles.balanceWrap}>
-        <RewardBalance balance={balance} compact />
+        {showInitialError ? (
+          <DataState message={error ?? undefined} onRetry={refresh} title="Rewards are unavailable" />
+        ) : (
+          <RewardBalance balance={balance} compact loading={isLoading && balance === null} />
+        )}
       </View>
 
       <View style={styles.tabs}>
@@ -44,30 +69,25 @@ export default function RewardsScreen() {
         <Text style={styles.activityCount}>{visibleTransactions.length} transactions</Text>
       </View>
 
-      <View style={styles.transactions}>
-        {isLoading && transactions.length === 0 ? (
-          <DataState loading title="Loading your rewards" />
-        ) : null}
-        {error && transactions.length === 0 ? (
-          <DataState message={error} onRetry={refresh} title="Rewards are unavailable" />
-        ) : null}
-        {visibleTransactions.map((transaction, index) => (
-          <View key={transaction.id}>
-            <TransactionRow transaction={transaction} />
-            {index < visibleTransactions.length - 1 ? <View style={styles.divider} /> : null}
-          </View>
-        ))}
-        {!isLoading && !error && visibleTransactions.length === 0 ? (
+      {visibleTransactions.length > 0 ? (
+        <View style={styles.transactions}>
+          {visibleTransactions.map((transaction, index) => (
+            <View key={transaction.id}>
+              <TransactionRow transaction={transaction} />
+              {index < visibleTransactions.length - 1 ? <View style={styles.divider} /> : null}
+            </View>
+          ))}
+        </View>
+      ) : !isLoading && !error ? (
+        <View style={styles.emptyWrap}>
           <DataState
-            message={
-              activeTab === 'Activity'
-                ? 'Scan a restaurant bill to earn your first reward.'
-                : `No ${activeTab.toLowerCase()} transactions yet.`
-            }
+            message={activeTab === 'Activity'
+              ? 'Scan an eligible restaurant bill to earn your first reward.'
+              : `No ${activeTab.toLowerCase()} reward activity yet.`}
             title="Nothing here yet"
           />
-        ) : null}
-      </View>
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -75,18 +95,8 @@ export default function RewardsScreen() {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
   heading: { paddingTop: spacing.lg },
-  eyebrow: {
-    color: colors.primary,
-    fontSize: typography.small,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-  },
-  title: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: '800',
-    letterSpacing: -0.75,
-  },
+  eyebrow: { color: colors.primary, fontSize: typography.small, fontWeight: '700', marginBottom: spacing.xs },
+  title: { color: colors.text, fontSize: typography.title, fontWeight: '800', letterSpacing: -0.75 },
   balanceWrap: { marginTop: spacing.xl },
   tabs: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xl },
   activityHeader: {
@@ -96,18 +106,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxxl,
     marginBottom: spacing.sm,
   },
-  activityTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-  },
-  activityCount: { color: colors.textTertiary, fontSize: typography.caption, fontWeight: '600' },
-  transactions: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-  },
+  activityTitle: { color: colors.text, fontSize: typography.heading, fontWeight: '700', letterSpacing: -0.4 },
+  activityCount: { color: colors.textTertiaryAccessible, fontSize: typography.caption, fontWeight: '600' },
+  transactions: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: spacing.md },
+  emptyWrap: { minHeight: 220, justifyContent: 'center' },
   divider: { height: 1, backgroundColor: colors.border, marginLeft: 56 },
 });

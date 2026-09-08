@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ArrowDownLeft, ArrowUpRight } from 'lucide-react-native';
+import { ArrowDownLeft, ArrowUpRight, RefreshCcw } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/constants/theme';
@@ -12,30 +12,39 @@ type TransactionRowProps = {
 
 export function TransactionRow({ transaction }: TransactionRowProps) {
   const router = useRouter();
-  const earned = transaction.type === 'earned';
-  const Icon = earned ? ArrowDownLeft : ArrowUpRight;
+  const earned = transaction.kind === 'earn' && transaction.status === 'completed';
+  const neutral = transaction.status !== 'completed' || ['adjustment', 'reversal'].includes(transaction.kind);
+  const Icon = neutral ? RefreshCcw : earned ? ArrowDownLeft : ArrowUpRight;
+  const sign = transaction.amount > 0 ? '+' : transaction.amount < 0 ? '−' : '';
 
-  return (
-    <Pressable
-      onPress={() =>
-        router.push({ pathname: '/restaurant/[id]', params: { id: transaction.restaurantId } })
-      }
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-    >
-      <View style={[styles.icon, earned ? styles.iconEarned : styles.iconRedeemed]}>
-        <Icon color={earned ? colors.primary : colors.warm} size={19} strokeWidth={2.1} />
+  const content = (
+    <>
+      <View style={[styles.icon, earned ? styles.iconEarned : neutral ? styles.iconNeutral : styles.iconRedeemed]}>
+        <Icon color={earned ? colors.primary : neutral ? colors.textSecondary : colors.warm} size={19} strokeWidth={2.1} />
       </View>
       <View style={styles.body}>
         <Text numberOfLines={1} style={styles.name}>
           {transaction.restaurantName}
         </Text>
-        <Text style={styles.meta}>
-          {earned ? 'Reward earned' : 'Reward used'} · {transaction.date}
-        </Text>
+        <Text style={styles.meta}>{transaction.label} · {transaction.date}</Text>
       </View>
       <Text style={[styles.amount, earned ? styles.amountEarned : styles.amountRedeemed]}>
-        {earned ? '+' : '−'} {formatAED(Math.abs(transaction.amount))}
+        {sign} {formatAED(Math.abs(transaction.amount))}
       </Text>
+    </>
+  );
+
+  if (!transaction.restaurantId) {
+    return <View style={styles.row}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push({ pathname: '/restaurant/[id]', params: { id: transaction.restaurantId! } })}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    >
+      {content}
     </Pressable>
   );
 }
@@ -60,6 +69,9 @@ const styles = StyleSheet.create({
   },
   iconRedeemed: {
     backgroundColor: colors.warmSoft,
+  },
+  iconNeutral: {
+    backgroundColor: colors.surface,
   },
   body: {
     flex: 1,
@@ -90,4 +102,3 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
-

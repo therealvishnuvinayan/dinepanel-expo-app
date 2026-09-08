@@ -41,10 +41,10 @@ Sign in → scan claim code → server preview → confirm bill → claim reward
 
 Claim QR values are parsed by `utils/claimUrl.ts`. Bill values and reward calculations come from the shared API rather than from QR payload fields.
 
-The tappable prototype OTP helper is compiled into development builds only. Customer
-and retained legacy Merchant release builds never display or prefill the static
-development credentials, and the production API does not accept the development OTP
-provider.
+The Customer release bundle has no development bill path or fixed-code helper. Local
+authentication still uses the API's explicitly configured development provider. Public
+production login remains fail-closed until a real SMS provider and its Railway credentials
+are configured on the API; no provider credentials belong in this repository.
 
 ## Validation
 

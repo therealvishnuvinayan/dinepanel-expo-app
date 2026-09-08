@@ -1,6 +1,6 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ArrowRight } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,14 +18,26 @@ import { colors, radius, spacing, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 
 export default function OtpScreen() {
-  const router = useRouter();
   const { requestOtp, verifyOtp } = useAuth();
-  const { phone } = useLocalSearchParams<{ phone?: string }>();
+  const { phone, cooldown } = useLocalSearchParams<{ phone?: string; cooldown?: string }>();
   const inputRef = useRef<TextInput>(null);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [resendFeedback, setResendFeedback] = useState('');
+  const [cooldownRemaining, setCooldownRemaining] = useState(() => {
+    const parsed = Number(cooldown);
+    return Number.isFinite(parsed) ? Math.max(0, Math.min(300, Math.ceil(parsed))) : 30;
+  });
+
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownRemaining((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownRemaining]);
 
   const verify = async () => {
     if (typeof phone !== 'string') {
@@ -36,7 +48,6 @@ export default function OtpScreen() {
     setError('');
     try {
       await verifyOtp(phone, code);
-      router.replace('/(tabs)');
     } catch (verifyError) {
       setError(verifyError instanceof Error ? verifyError.message : 'Unable to verify this code.');
     } finally {
@@ -45,11 +56,14 @@ export default function OtpScreen() {
   };
 
   const resend = async () => {
-    if (typeof phone !== 'string') return;
+    if (typeof phone !== 'string' || cooldownRemaining > 0 || resending) return;
     setResending(true);
     setError('');
+    setResendFeedback('');
     try {
-      await requestOtp(phone);
+      const response = await requestOtp(phone);
+      setCooldownRemaining(Math.max(1, Math.ceil(response.resend_available_in_seconds)));
+      setResendFeedback('A new code was sent.');
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to resend the code.');
     } finally {
@@ -98,17 +112,17 @@ export default function OtpScreen() {
             />
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            {__DEV__ ? (
-              <View style={styles.demoNote}>
-                <Text style={styles.demoLabel}>Prototype code</Text>
-                <Pressable onPress={() => setCode('123456')}>
-                  <Text style={styles.demoCode}>123456</Text>
-                </Pressable>
-              </View>
-            ) : null}
-            <Pressable disabled={resending} onPress={resend} style={styles.resend}>
+            {resendFeedback ? <Text accessibilityLiveRegion="polite" style={styles.feedback}>{resendFeedback}</Text> : null}
+            <Pressable
+              accessibilityRole="button"
+              disabled={resending || cooldownRemaining > 0}
+              onPress={resend}
+              style={[styles.resend, cooldownRemaining > 0 && styles.resendDisabled]}
+            >
               <Text style={styles.resendText}>Didn’t receive it? </Text>
-              <Text style={styles.resendAction}>{resending ? 'Sending…' : 'Send again'}</Text>
+              <Text style={styles.resendAction}>
+                {resending ? 'Sending…' : cooldownRemaining > 0 ? `Send again in ${cooldownRemaining}s` : 'Send again'}
+              </Text>
             </Pressable>
           </View>
 
@@ -165,24 +179,9 @@ const styles = StyleSheet.create({
   codeText: { color: colors.text, fontSize: 22, fontWeight: '700' },
   hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
   error: { color: colors.danger, fontSize: typography.small, marginTop: spacing.sm },
-  demoNote: {
-    marginTop: spacing.xl,
-    borderRadius: radius.md,
-    backgroundColor: colors.primarySoft,
-    paddingHorizontal: spacing.md,
-    height: 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  demoLabel: { color: colors.primary, fontSize: typography.small, fontWeight: '600' },
-  demoCode: {
-    color: colors.primary,
-    fontSize: typography.body,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-  },
+  feedback: { color: colors.primary, fontSize: typography.small, fontWeight: '600', marginTop: spacing.lg },
   resend: { flexDirection: 'row', marginTop: spacing.xl },
+  resendDisabled: { opacity: 0.62 },
   resendText: { color: colors.textSecondary, fontSize: typography.small },
   resendAction: { color: colors.primary, fontSize: typography.small, fontWeight: '700' },
 });

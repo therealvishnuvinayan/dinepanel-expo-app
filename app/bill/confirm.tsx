@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { CalendarDays, Check, ReceiptText, ShieldCheck } from 'lucide-react-native';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/ui/AppHeader';
@@ -8,21 +8,64 @@ import { Button } from '@/components/ui/Button';
 import { DataState } from '@/components/ui/DataState';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { useRewards } from '@/context/RewardsContext';
 import { formatAED } from '@/utils/format';
 
 export default function BillConfirmationScreen() {
   const router = useRouter();
-  const { claimCurrentBill, currentBill } = useRewards();
+  const { authStatus } = useAuth();
+  const { claimCurrentBill, currentBill, restorePendingClaim } = useRewards();
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState('');
+  const [restoreCompleted, setRestoreCompleted] = useState(false);
+  const restoreRequest = useRef(0);
+
+  const restore = useCallback(async () => {
+    if (authStatus !== 'AUTHENTICATED') return;
+    const request = ++restoreRequest.current;
+    try {
+      const restored = await restorePendingClaim();
+      if (restoreRequest.current === request && !restored) {
+        setError('Scan a restaurant bill to start a new reward claim.');
+      }
+    } catch (restoreError) {
+      if (restoreRequest.current === request) {
+        setError(restoreError instanceof Error ? restoreError.message : 'Unable to restore this bill.');
+      }
+    } finally {
+      if (restoreRequest.current === request) setRestoreCompleted(true);
+    }
+  }, [authStatus, restorePendingClaim]);
+
+  useEffect(() => {
+    if (currentBill || authStatus !== 'AUTHENTICATED') return;
+    const request = ++restoreRequest.current;
+    restorePendingClaim()
+      .then((restored) => {
+        if (restoreRequest.current === request && !restored) {
+          setError('Scan a restaurant bill to start a new reward claim.');
+        }
+      })
+      .catch((restoreError) => {
+        if (restoreRequest.current === request) {
+          setError(restoreError instanceof Error ? restoreError.message : 'Unable to restore this bill.');
+        }
+      })
+      .finally(() => {
+        if (restoreRequest.current === request) setRestoreCompleted(true);
+      });
+    return () => {
+      restoreRequest.current += 1;
+    };
+  }, [authStatus, currentBill, restorePendingClaim]);
 
   const claim = async () => {
     setClaiming(true);
     setError('');
     try {
-      await claimCurrentBill();
-      router.replace('/reward/success');
+      const result = await claimCurrentBill();
+      router.replace({ pathname: '/reward/success', params: { transactionId: result.transaction.id } });
     } catch (claimError) {
       setError(claimError instanceof Error ? claimError.message : 'Unable to claim this reward.');
     } finally {
@@ -31,13 +74,21 @@ export default function BillConfirmationScreen() {
   };
 
   if (!currentBill) {
+    const waitingForAuth = authStatus !== 'AUTHENTICATED';
+    const isRestoring = waitingForAuth || !restoreCompleted;
     return (
       <Screen contentStyle={styles.content} edges={['top', 'bottom', 'left', 'right']}>
         <AppHeader showBack title="Confirm bill" />
         <View style={styles.missing}>
           <DataState
-            message="Return to the scanner and use the demo bill first."
-            title="No bill is ready"
+            loading={isRestoring}
+            message={isRestoring ? 'Retrieving the current bill from DinePanel.' : error || 'Scan a restaurant bill to preview a reward.'}
+            onRetry={!isRestoring && error ? () => {
+              setError('');
+              setRestoreCompleted(false);
+              void restore();
+            } : undefined}
+            title={isRestoring ? 'Restoring your bill' : 'No bill is ready'}
           />
           <Button label="Open scanner" onPress={() => router.replace('/(tabs)/scan')} />
         </View>
@@ -51,6 +102,15 @@ export default function BillConfirmationScreen() {
     month: 'short',
     year: 'numeric',
   }).format(new Date(`${currentBill.billDate}T12:00:00`));
+  const expiryDate = new Date(currentBill.expiresAt);
+  const validUntil = Number.isNaN(expiryDate.getTime())
+    ? null
+    : new Intl.DateTimeFormat('en-AE', {
+        day: '2-digit',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(expiryDate);
 
   return (
     <Screen
@@ -81,7 +141,7 @@ export default function BillConfirmationScreen() {
             </View>
             <View>
               <Text style={styles.restaurantName}>{restaurant.name}</Text>
-              <Text style={styles.restaurantMeta}>{restaurant.cuisine} · {restaurant.neighborhood}</Text>
+              <Text style={styles.restaurantMeta}>{restaurant.cuisine} · {restaurant.area}</Text>
             </View>
           </View>
           <View style={styles.billIdentity}>
@@ -124,6 +184,7 @@ export default function BillConfirmationScreen() {
         <View style={styles.verifiedBody}>
           <Text style={styles.verifiedTitle}>Bill verified</Text>
           <Text style={styles.verifiedText}>The restaurant, amount and reference have been matched.</Text>
+          {validUntil ? <Text style={styles.expiry}>Valid until {validUntil}. Server verification remains authoritative.</Text> : null}
         </View>
       </View>
     </Screen>
@@ -190,6 +251,7 @@ const styles = StyleSheet.create({
   verifiedBody: { flex: 1 },
   verifiedTitle: { color: colors.text, fontSize: typography.small, fontWeight: '700', marginBottom: 3 },
   verifiedText: { color: colors.textSecondary, fontSize: typography.caption, lineHeight: 18 },
+  expiry: { color: colors.textSecondaryAccessible, fontSize: typography.caption, lineHeight: 18, marginTop: spacing.xs },
   footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border },
   footerNote: { color: colors.textTertiary, fontSize: 11, textAlign: 'center', marginTop: spacing.xs },
   error: { color: colors.danger, fontSize: typography.caption, lineHeight: 18, textAlign: 'center', marginTop: spacing.xs },

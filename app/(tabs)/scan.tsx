@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Camera, Flashlight, Keyboard, RotateCcw, ScanLine, Settings, Sparkles, X } from 'lucide-react-native';
+import { Camera, Flashlight, Keyboard, RotateCcw, ScanLine, Settings, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,18 +21,19 @@ import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { useRewards } from '@/context/RewardsContext';
 import { parseClaimToken } from '@/utils/claimUrl';
 
 export default function ScanScreen() {
   const router = useRouter();
-  const { createDemoBill, previewClaimToken } = useRewards();
+  const { authStatus } = useAuth();
+  const { previewClaimToken } = useRewards();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanProgress] = useState(() => new Animated.Value(0));
   const [manualOpen, setManualOpen] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [flashOn, setFlashOn] = useState(false);
-  const [openingDemo, setOpeningDemo] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [scanLocked, setScanLocked] = useState(false);
   const [error, setError] = useState('');
@@ -88,20 +89,6 @@ export default function ScanScreen() {
     setError('');
   };
 
-  const openDemoBill = async () => {
-    if (openingDemo) return;
-    setOpeningDemo(true);
-    setError('');
-    try {
-      await createDemoBill();
-      router.push('/bill/confirm');
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : 'Unable to create the demo bill.');
-    } finally {
-      setOpeningDemo(false);
-    }
-  };
-
   const renderCamera = () => {
     if (!permission) {
       return <View style={styles.permissionState}><ActivityIndicator color={colors.primaryMuted} /><Text style={styles.permissionCopy}>Checking camera access…</Text></View>;
@@ -149,6 +136,19 @@ export default function ScanScreen() {
     );
   };
 
+  if (authStatus !== 'AUTHENTICATED') {
+    return (
+      <>
+        <StatusBar style="light" />
+        <Screen backgroundColor={colors.dark} contentStyle={styles.bootstrap} scroll={false}>
+          <ActivityIndicator color={colors.primaryMuted} />
+          <Text style={styles.bootstrapTitle}>Restoring your session</Text>
+          <Text style={styles.bootstrapCopy}>Preparing the secure DinePanel scanner.</Text>
+        </Screen>
+      </>
+    );
+  }
+
   return (
     <>
       <StatusBar style="light" />
@@ -163,23 +163,24 @@ export default function ScanScreen() {
           <Pressable onPress={() => { resetScanner(); setManualOpen(true); }} style={({ pressed }) => [styles.manual, pressed && styles.pressed]}>
             <Keyboard color={colors.white} size={18} /><Text style={styles.manualText}>Enter claim code manually</Text>
           </Pressable>
-          {__DEV__ ? (
-            <Pressable disabled={openingDemo} onPress={openDemoBill} style={({ pressed }) => [styles.demo, pressed && styles.pressed]}>
-              {openingDemo ? <ActivityIndicator color={colors.primaryMuted} size="small" /> : <Sparkles color={colors.primaryMuted} size={15} />}
-              <Text style={styles.demoText}>{openingDemo ? 'Creating demo bill…' : 'Use development demo bill'}</Text>
-            </Pressable>
-          ) : null}
         </View>
         <Text style={styles.privacy}>Only the opaque claim code is read. Bill values always come from DinePanel.</Text>
       </Screen>
 
-      <Modal animationType="slide" onRequestClose={() => setManualOpen(false)} transparent visible={manualOpen}>
+      <Modal
+        accessibilityLabel="Enter claim code"
+        aria-labelledby="manual-claim-title"
+        animationType="slide"
+        onRequestClose={() => setManualOpen(false)}
+        transparent
+        visible={manualOpen}
+      >
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
           <Pressable onPress={() => setManualOpen(false)} style={StyleSheet.absoluteFill} />
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <View><Text style={styles.sheetEyebrow}>Alternative entry</Text><Text style={styles.sheetTitle}>Enter claim code</Text></View>
+              <View><Text style={styles.sheetEyebrow}>Alternative entry</Text><Text nativeID="manual-claim-title" style={styles.sheetTitle}>Enter claim code</Text></View>
               <IconButton icon={X} label="Close" onPress={() => setManualOpen(false)} />
             </View>
             <Text style={styles.sheetSubtitle}>Paste the opaque code or the complete DinePanel claim URL.</Text>
@@ -206,6 +207,9 @@ export default function ScanScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+  bootstrap: { alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.xl },
+  bootstrapTitle: { color: colors.white, fontSize: typography.body, fontWeight: '700' },
+  bootstrapCopy: { color: 'rgba(255,255,255,0.62)', fontSize: typography.caption, textAlign: 'center' },
   header: { paddingTop: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   eyebrow: { color: colors.primaryMuted, fontSize: typography.caption, fontWeight: '700', marginBottom: 5 },
   title: { color: colors.white, fontSize: typography.title, fontWeight: '700', letterSpacing: -0.7 },
@@ -233,9 +237,7 @@ const styles = StyleSheet.create({
   actions: { alignItems: 'center', gap: spacing.sm },
   manual: { height: 52, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: 'rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, width: '100%' },
   manualText: { color: colors.white, fontSize: typography.small, fontWeight: '700' },
-  demo: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.xs },
-  demoText: { color: colors.primaryMuted, fontSize: typography.caption, fontWeight: '600' },
-  privacy: { color: 'rgba(255,255,255,0.38)', fontSize: 11, textAlign: 'center', marginTop: spacing.xs },
+  privacy: { color: 'rgba(255,255,255,0.5)', fontSize: 11, textAlign: 'center', marginTop: spacing.xs },
   pressed: { opacity: 0.62, transform: [{ scale: 0.985 }] },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(5,16,11,0.54)' },
   sheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: spacing.xl, paddingBottom: 38 },

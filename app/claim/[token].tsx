@@ -15,7 +15,7 @@ export default function ClaimDeepLinkScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ token?: string | string[] }>();
   const { isAuthenticated, isLoading } = useAuth();
-  const { previewClaimToken } = useRewards();
+  const { clearPendingClaim, previewClaimToken } = useRewards();
   const [error, setError] = useState('');
   const started = useRef(false);
   const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
@@ -36,8 +36,11 @@ export default function ClaimDeepLinkScreen() {
     started.current = true;
     previewClaimToken(parsedClaim.token)
       .then(() => router.replace('/bill/confirm'))
-      .catch((claimError) => setError(claimError instanceof Error ? claimError.message : 'Unable to open this claim.'));
-  }, [isAuthenticated, isLoading, parsedClaim.token, previewClaimToken, router]);
+      .catch((claimError) => {
+        void clearPendingClaim().catch(() => undefined);
+        setError(claimError instanceof Error ? claimError.message : 'Unable to open this claim.');
+      });
+  }, [clearPendingClaim, isAuthenticated, isLoading, parsedClaim.token, previewClaimToken, router]);
 
   const visibleError = parsedClaim.error || error;
 
@@ -53,7 +56,12 @@ export default function ClaimDeepLinkScreen() {
             <Button label="Open scanner" onPress={() => router.replace('/(tabs)/scan')} />
           </>
         ) : (
-          <><ActivityIndicator color={colors.primary} size="large" /><Text style={styles.copy}>Verifying your restaurant bill…</Text></>
+          <>
+            <ActivityIndicator color={colors.primary} size="large" />
+            <Text style={styles.copy}>
+              {isAuthenticated ? 'Verifying your restaurant bill…' : 'Taking you to secure sign in…'}
+            </Text>
+          </>
         )}
       </View>
     </Screen>

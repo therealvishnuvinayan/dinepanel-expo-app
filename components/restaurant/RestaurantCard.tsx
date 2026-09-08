@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ArrowUpRight, Heart, MapPin } from 'lucide-react-native';
+import { ArrowUpRight, MapPin } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, shadow, spacing, typography } from '@/constants/theme';
@@ -60,21 +60,13 @@ export function RestaurantCard({ restaurant, variant = 'list' }: RestaurantCardP
         </View>
         <View style={styles.listFooter}>
           <Pill label={`${restaurant.rewardPercent}% rewards`} tone="green" />
-          <View style={styles.distance}>
+          <View style={styles.location}>
             <MapPin color={colors.textTertiaryAccessible} size={13} />
-            <Text style={styles.distanceText}>{restaurant.distance}</Text>
+            <Text style={styles.locationText}>{restaurant.area || restaurant.city}</Text>
           </View>
         </View>
       </View>
     </Pressable>
-  );
-}
-
-export function FavouriteButton() {
-  return (
-    <View style={styles.favourite}>
-      <Heart color={colors.white} fill={colors.white} size={17} strokeWidth={1.8} />
-    </View>
   );
 }
 
@@ -160,27 +152,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.xs,
   },
-  distance: {
+  location: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     paddingRight: 2,
   },
-  distanceText: {
+  locationText: {
     color: colors.textTertiaryAccessible,
     fontSize: typography.caption,
     fontWeight: '600',
-  },
-  favourite: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    width: 32,
-    height: 32,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(17,19,18,0.26)',
   },
   pressed: {
     opacity: 0.86,

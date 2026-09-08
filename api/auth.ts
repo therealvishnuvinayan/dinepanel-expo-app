@@ -7,8 +7,13 @@ export type VerifyOtpResponse = {
   user: ApiUser;
 };
 
+export type RequestOtpResponse = {
+  message: string;
+  resend_available_in_seconds: number;
+};
+
 export function requestOtp(phone: string) {
-  return apiRequest<{ message: string }>('/auth/request-otp', {
+  return apiRequest<RequestOtpResponse>('/auth/request-otp', {
     method: 'POST',
     body: JSON.stringify({ phone }),
   });

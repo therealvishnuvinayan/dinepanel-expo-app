@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
@@ -7,12 +7,20 @@ import { Button } from '@/components/ui/Button';
 import { DataState } from '@/components/ui/DataState';
 import { Screen } from '@/components/ui/Screen';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { useRewards } from '@/context/RewardsContext';
 import { formatAED } from '@/utils/format';
 
 export default function RewardSuccessScreen() {
   const router = useRouter();
-  const { lastClaim } = useRewards();
+  const { authStatus } = useAuth();
+  const { transactionId } = useLocalSearchParams<{ transactionId?: string }>();
+  const { lastClaim, loadClaimResult } = useRewards();
+  const [recovery, setRecovery] = useState<{
+    transactionId: string;
+    claim: typeof lastClaim;
+    error: string;
+  } | null>(null);
   const [scale] = useState(() => new Animated.Value(0.6));
   const [opacity] = useState(() => new Animated.Value(0));
 
@@ -23,16 +31,52 @@ export default function RewardSuccessScreen() {
     ]).start();
   }, [opacity, scale]);
 
-  if (!lastClaim) {
+  useEffect(() => {
+    if (!transactionId || lastClaim?.transaction.id === transactionId || authStatus !== 'AUTHENTICATED') return;
+    let active = true;
+    loadClaimResult(transactionId)
+      .then((result) => {
+        if (active) setRecovery({ transactionId, claim: result, error: '' });
+      })
+      .catch((error) => {
+        if (active) {
+          setRecovery({
+            transactionId,
+            claim: null,
+            error: error instanceof Error ? error.message : 'Unable to restore this reward receipt.',
+          });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [authStatus, lastClaim?.transaction.id, loadClaimResult, transactionId]);
+
+  const recoveredClaim = recovery && recovery.transactionId === transactionId ? recovery.claim : null;
+  const claim = lastClaim?.transaction.id === transactionId
+    ? lastClaim
+    : recoveredClaim;
+  const recovering = Boolean(transactionId)
+    && !claim
+    && (authStatus !== 'AUTHENTICATED' || recovery?.transactionId !== transactionId);
+  const recoveryError = recovery && recovery.transactionId === transactionId ? recovery.error : '';
+
+  if (!claim) {
     return (
       <Screen contentStyle={styles.content} edges={['top', 'bottom', 'left', 'right']} scroll={false}>
         <View style={styles.successContent}>
           <DataState
-            message="Your latest balance is available on the Home and Rewards screens."
-            title="No recent claim"
+            loading={recovering}
+            message={recovering
+              ? 'Retrieving the completed reward from DinePanel.'
+              : recoveryError || 'Your authoritative reward activity remains available in Rewards.'}
+            title={recovering ? 'Restoring reward receipt' : 'Reward receipt unavailable'}
           />
         </View>
-        <Button label="Return home" onPress={() => router.replace('/(tabs)')} />
+        <View style={styles.actions}>
+          <Button label="View rewards" onPress={() => router.replace('/(tabs)/rewards')} />
+          <Button label="Return home" onPress={() => router.replace('/(tabs)')} variant="ghost" />
+        </View>
       </Screen>
     );
   }
@@ -48,13 +92,13 @@ export default function RewardSuccessScreen() {
 
         <Animated.View style={[styles.copy, { opacity }]}>
           <Text style={styles.eyebrow}>Reward added</Text>
-          <Text style={styles.amount}>{formatAED(lastClaim.rewardAmount)}</Text>
-          <Text style={styles.restaurant}>{lastClaim.restaurant.name}</Text>
+          <Text style={styles.amount}>{formatAED(claim.rewardAmount)}</Text>
+          <Text style={styles.restaurant}>{claim.restaurant.name}</Text>
         </Animated.View>
 
         <Animated.View style={[styles.balanceCard, { opacity }]}>
           <Text style={styles.balanceLabel}>Available balance</Text>
-          <Text style={styles.balanceAmount}>{formatAED(lastClaim.updatedBalance)}</Text>
+          <Text style={styles.balanceAmount}>{formatAED(claim.updatedBalance)}</Text>
         </Animated.View>
       </View>
 

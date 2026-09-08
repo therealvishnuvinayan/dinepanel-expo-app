@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ArrowRight, ChevronDown, ShieldCheck } from 'lucide-react-native';
+import { ArrowRight, ShieldCheck } from 'lucide-react-native';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -23,7 +23,7 @@ export default function PhoneScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const normalizedPhone = phone.replace(/\D/g, '').slice(0, 9);
-  const canContinue = normalizedPhone.length >= 8;
+  const canContinue = normalizedPhone.length === 9;
 
   const formatPhone = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 9);
@@ -36,8 +36,11 @@ export default function PhoneScreen() {
     setLoading(true);
     setError('');
     try {
-      await requestOtp(fullPhone);
-      router.push({ pathname: '/auth/otp', params: { phone: fullPhone } });
+      const response = await requestOtp(fullPhone);
+      router.push({
+        pathname: '/auth/otp',
+        params: { phone: fullPhone, cooldown: String(response.resend_available_in_seconds) },
+      });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to send a code.');
     } finally {
@@ -64,7 +67,6 @@ export default function PhoneScreen() {
               <View style={styles.country}>
                 <Text style={styles.flag}>🇦🇪</Text>
                 <Text style={styles.countryCode}>+971</Text>
-                <ChevronDown color={colors.textSecondary} size={15} strokeWidth={2} />
               </View>
               <TextInput
                 autoFocus

@@ -1,6 +1,6 @@
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { ArrowRight, ReceiptText, Sparkles } from 'lucide-react-native';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
@@ -38,17 +38,17 @@ export default function WelcomeScreen() {
           <View style={styles.receiptCard}>
             <View style={styles.receiptTop}>
               <View style={styles.restaurantMark}>
-                <Text style={styles.restaurantInitial}>G</Text>
+                <Text style={styles.restaurantInitial}>D</Text>
               </View>
               <View>
-                <Text style={styles.restaurantName}>Green Chilli</Text>
-                <Text style={styles.restaurantMeta}>Your dining reward</Text>
+                <Text style={styles.restaurantName}>Dining rewards</Text>
+                <Text style={styles.restaurantMeta}>From participating restaurants</Text>
               </View>
             </View>
             <View style={styles.rewardRow}>
               <View>
-                <Text style={styles.rewardLabel}>Reward earned</Text>
-                <Text style={styles.rewardAmount}>AED 10.00</Text>
+                <Text style={styles.rewardLabel}>Scan an eligible bill</Text>
+                <Text style={styles.rewardAmount}>Earn rewards</Text>
               </View>
               <View style={styles.sparkle}>
                 <Sparkles color={colors.primary} size={22} strokeWidth={1.8} />
@@ -57,7 +57,7 @@ export default function WelcomeScreen() {
           </View>
           <View style={styles.scanBadge}>
             <ReceiptText color={colors.primary} size={17} strokeWidth={2} />
-            <Text style={styles.scanBadgeText}>Bill confirmed</Text>
+            <Text style={styles.scanBadgeText}>Secure bill scan</Text>
           </View>
         </View>
 
@@ -74,7 +74,20 @@ export default function WelcomeScreen() {
           onPress={() => router.push('/auth/phone')}
         />
         <Button label="Log in" onPress={() => router.push('/auth/phone')} variant="ghost" />
-        <Text style={styles.legal}>By continuing, you agree to DinePanel’s terms and privacy policy.</Text>
+        <Text style={styles.legal}>By continuing, you agree to DinePanel’s:</Text>
+        <View style={styles.legalLinks}>
+          <Link asChild href="/legal/terms">
+            <Pressable accessibilityRole="link" style={styles.legalLinkButton}>
+              <Text style={styles.legalLink}>Terms of Service</Text>
+            </Pressable>
+          </Link>
+          <Text style={styles.legalDivider}>and</Text>
+          <Link asChild href="/legal/privacy">
+            <Pressable accessibilityRole="link" style={styles.legalLinkButton}>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
+            </Pressable>
+          </Link>
+        </View>
       </View>
     </Screen>
   );
@@ -224,11 +237,15 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   legal: {
-    color: colors.textTertiary,
+    color: colors.textTertiaryAccessible,
     fontSize: 11,
     lineHeight: 16,
     textAlign: 'center',
     paddingHorizontal: spacing.xl,
     marginTop: spacing.xs,
   },
+  legalLinks: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
+  legalLinkButton: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 4 },
+  legalLink: { color: colors.primary, fontSize: 11, fontWeight: '700', textDecorationLine: 'underline' },
+  legalDivider: { color: colors.textTertiaryAccessible, fontSize: 11 },
 });

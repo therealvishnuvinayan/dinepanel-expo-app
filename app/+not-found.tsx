@@ -12,7 +12,7 @@ export default function NotFoundScreen() {
     <Screen contentStyle={styles.content} edges={['top', 'bottom']} scroll={false}>
       <View>
         <Text style={styles.eyebrow}>404</Text>
-        <Text style={styles.title}>This table isn’t ready</Text>
+        <Text style={styles.title}>This page isn’t available</Text>
         <Text style={styles.subtitle}>The page you’re looking for can’t be found.</Text>
       </View>
       <Button label="Back to DinePanel" onPress={() => router.replace('/')} />

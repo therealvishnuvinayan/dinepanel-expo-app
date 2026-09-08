@@ -1,6 +1,7 @@
 import type { PropsWithChildren, ReactNode } from 'react';
 import {
   ScrollView,
+  RefreshControl,
   StyleSheet,
   View,
   type StyleProp,
@@ -17,6 +18,8 @@ type ScreenProps = PropsWithChildren<{
   edges?: Edge[];
   footer?: ReactNode;
   keyboardShouldPersistTaps?: 'always' | 'handled' | 'never';
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }>;
 
 export function Screen({
@@ -27,11 +30,23 @@ export function Screen({
   edges = ['top', 'left', 'right'],
   footer,
   keyboardShouldPersistTaps = 'handled',
+  refreshing = false,
+  onRefresh,
 }: ScreenProps) {
   const body = scroll ? (
     <ScrollView
       contentContainerStyle={[styles.scrollContent, contentStyle]}
       keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            colors={[colors.primary]}
+            onRefresh={onRefresh}
+            refreshing={refreshing}
+            tintColor={colors.primary}
+          />
+        ) : undefined
+      }
       showsVerticalScrollIndicator={false}
     >
       {children}
@@ -65,4 +80,3 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 });
-

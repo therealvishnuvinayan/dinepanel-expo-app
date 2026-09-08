@@ -43,3 +43,13 @@ export function parseClaimToken(value: string, allowBareToken = true): string {
 
   throw new InvalidClaimUrlError();
 }
+
+export function claimTokenFromInternalPath(pathname: string): string | null {
+  const match = pathname.match(/^\/claim\/([^/?#]+)\/?$/);
+  if (!match) return null;
+  try {
+    return parseClaimToken(decodeURIComponent(match[1]), true);
+  } catch {
+    return null;
+  }
+}
