@@ -61,7 +61,7 @@ export function RestaurantCard({ restaurant, variant = 'list' }: RestaurantCardP
         <View style={styles.listFooter}>
           <Pill label={`${restaurant.rewardPercent}% rewards`} tone="green" />
           <View style={styles.distance}>
-            <MapPin color={colors.textTertiary} size={13} />
+            <MapPin color={colors.textTertiaryAccessible} size={13} />
             <Text style={styles.distanceText}>{restaurant.distance}</Text>
           </View>
         </View>
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     paddingRight: 2,
   },
   distanceText: {
-    color: colors.textTertiary,
+    color: colors.textTertiaryAccessible,
     fontSize: typography.caption,
     fontWeight: '600',
   },
@@ -187,4 +187,3 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.985 }],
   },
 });
-
