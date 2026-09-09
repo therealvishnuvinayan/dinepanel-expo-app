@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Gift, MapPin, Navigation } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -23,7 +23,7 @@ type RestaurantLoadState = {
 export default function RestaurantDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getRestaurant, loadRestaurant, transactions } = useRewards();
+  const { balance, getRestaurant, loadRestaurant, transactions } = useRewards();
   const cachedRestaurant = getRestaurant(id);
   const [loadState, setLoadState] = useState<RestaurantLoadState>(() => ({
     routeId: id,
@@ -161,7 +161,14 @@ export default function RestaurantDetailScreen() {
           </View>
         ) : null}
 
-        <Button label="Scan a bill here" onPress={() => router.push('/(tabs)/scan')} style={styles.scanButton} />
+        {balance !== null && balance > 0 ? (
+          <Button
+            label="Use rewards here"
+            onPress={() => router.push({ pathname: '/reward/use', params: { restaurantId: restaurant.id } } as unknown as Href)}
+            style={styles.useButton}
+          />
+        ) : null}
+        <Button label="Scan a bill here" onPress={() => router.push('/(tabs)/scan')} style={styles.scanButton} variant="secondary" />
       </View>
     </Screen>
   );
@@ -196,5 +203,6 @@ const styles = StyleSheet.create({
   visitDate: { color: colors.text, fontSize: typography.body, fontWeight: '700', marginTop: 5 },
   visitReward: { color: colors.primary, fontSize: typography.small, fontWeight: '600', marginTop: spacing.sm },
   scanButton: { marginTop: spacing.xl },
+  useButton: { marginTop: spacing.xl },
   pressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
 });

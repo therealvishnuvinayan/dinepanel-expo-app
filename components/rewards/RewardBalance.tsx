@@ -1,4 +1,4 @@
-import { Gift, ScanLine } from 'lucide-react-native';
+import { ArrowUpRight, Gift, ScanLine } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/constants/theme';
@@ -8,6 +8,7 @@ type RewardBalanceProps = {
   balance: number | null;
   monthlyEarned?: number | null;
   onScan?: () => void;
+  onUse?: () => void;
   compact?: boolean;
   loading?: boolean;
 };
@@ -16,6 +17,7 @@ export function RewardBalance({
   balance,
   monthlyEarned,
   onScan,
+  onUse,
   compact = false,
   loading = false,
 }: RewardBalanceProps) {
@@ -36,7 +38,7 @@ export function RewardBalance({
           <Gift color={colors.primary} size={20} strokeWidth={2.2} />
         </View>
       </View>
-      {monthlyEarned !== undefined || onScan ? (
+      {monthlyEarned !== undefined || onScan || onUse ? (
         <View style={styles.footer}>
           {monthlyEarned !== undefined ? (
             <View>
@@ -48,10 +50,17 @@ export function RewardBalance({
           ) : (
             <View />
           )}
-          {onScan ? (
-            <Pressable onPress={onScan} style={({ pressed }) => [styles.scanButton, pressed && styles.pressed]}>
-              <ScanLine color={colors.white} size={18} strokeWidth={2.2} />
-              <Text style={styles.scanLabel}>Scan bill</Text>
+          {onUse || onScan ? (
+            <Pressable
+              accessibilityLabel={onUse ? 'Use rewards' : 'Scan bill'}
+              accessibilityRole="button"
+              onPress={onUse ?? onScan}
+              style={({ pressed }) => [styles.scanButton, pressed && styles.pressed]}
+            >
+              {onUse
+                ? <ArrowUpRight color={colors.white} size={18} strokeWidth={2.2} />
+                : <ScanLine color={colors.white} size={18} strokeWidth={2.2} />}
+              <Text style={styles.scanLabel}>{onUse ? 'Use rewards' : 'Scan bill'}</Text>
             </Pressable>
           ) : null}
         </View>

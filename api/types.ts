@@ -67,3 +67,28 @@ export type ApiTokenClaimResponse = {
   restaurant: ApiRestaurant;
   bill: ApiMerchantBill;
 };
+
+export type ApiRewardRedemptionStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'CONFIRMED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export type ApiRewardRedemption = {
+  id: string;
+  restaurant: ApiRestaurant;
+  amount: string;
+  status: ApiRewardRedemptionStatus;
+  expires_at: string;
+  created_at: string;
+  accepted_at: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  reward_transaction_id: string | null;
+  current_balance: string;
+};
+
+export type ApiCreatedRewardRedemption = ApiRewardRedemption & {
+  qr_payload: string;
+};

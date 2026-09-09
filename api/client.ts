@@ -39,6 +39,12 @@ const knownMessages: Record<string, string> = {
   'Restaurant is not currently active': 'This restaurant is not currently available.',
   'Restaurant not found': 'This restaurant is not available.',
   'Reward transaction not found': 'This reward activity is not available.',
+  'You already have an active reward code': 'You already have an active reward code.',
+  'Reward amount exceeds your available balance': 'That amount is no longer available. Check your reward balance.',
+  'Reward code has expired': 'This reward code has expired.',
+  'Reward code is no longer active': 'This reward code is no longer active.',
+  'Reward use request not found': 'This reward use request is not available.',
+  'This reward use request can no longer be cancelled': 'The restaurant has started applying this reward, so it can no longer be cancelled here.',
 };
 
 function stringDetail(payload: unknown) {
@@ -54,6 +60,8 @@ export function normalizeApiError(path: string, status: number, payload: unknown
   if (status === 404 && path.startsWith('/claims/')) return 'This claim code could not be found.';
   if (status === 409 && path.startsWith('/claims/')) return 'This reward cannot be claimed again.';
   if (status === 410 && path.startsWith('/claims/')) return 'This claim code has expired.';
+  if (status === 410 && path.startsWith('/rewards/redemptions')) return 'This reward code has expired.';
+  if (status === 409 && path.startsWith('/rewards/redemptions') && detail) return detail;
   if (status === 422) return 'Check the information entered and try again.';
   if (status === 429) return 'Please wait a moment before trying again.';
   if (status === 503 && path.startsWith('/auth/')) {

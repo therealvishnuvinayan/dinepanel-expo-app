@@ -80,6 +80,7 @@ function RootStack() {
         <Stack.Screen name="bill/confirm" options={{ presentation: 'card' }} />
         <Stack.Screen name="claim/[token]" options={{ animation: 'fade' }} />
         <Stack.Screen name="reward/success" options={{ animation: 'fade' }} />
+        <Stack.Screen name="reward/use" />
         <Stack.Screen name="restaurant/[id]" />
         <Stack.Screen name="legal/terms" />
         <Stack.Screen name="legal/privacy" />

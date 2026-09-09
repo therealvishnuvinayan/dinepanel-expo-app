@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -14,6 +14,7 @@ const tabs = ['Activity', 'Earned', 'Used'] as const;
 type RewardsTab = (typeof tabs)[number];
 
 export default function RewardsScreen() {
+  const router = useRouter();
   const {
     balance,
     transactions,
@@ -54,9 +55,21 @@ export default function RewardsScreen() {
         {showInitialError ? (
           <DataState message={error ?? undefined} onRetry={refresh} title="Rewards are unavailable" />
         ) : (
-          <RewardBalance balance={balance} compact loading={isLoading && balance === null} />
+          <RewardBalance
+            balance={balance}
+            compact
+            loading={isLoading && balance === null}
+            onUse={balance !== null && balance > 0 ? () => router.push('/reward/use' as Href) : undefined}
+          />
         )}
       </View>
+
+      {balance === 0 ? (
+        <View accessibilityLiveRegion="polite" style={styles.zeroBalance}>
+          <Text style={styles.zeroTitle}>Earn rewards before using them</Text>
+          <Text style={styles.zeroCopy}>Scan an eligible restaurant bill and your available rewards will appear here.</Text>
+        </View>
+      ) : null}
 
       <View style={styles.tabs}>
         {tabs.map((tab) => (
@@ -111,4 +124,7 @@ const styles = StyleSheet.create({
   transactions: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: spacing.md },
   emptyWrap: { minHeight: 220, justifyContent: 'center' },
   divider: { height: 1, backgroundColor: colors.border, marginLeft: 56 },
+  zeroBalance: { marginTop: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surface, padding: spacing.md },
+  zeroTitle: { color: colors.text, fontSize: typography.small, fontWeight: '700' },
+  zeroCopy: { color: colors.textSecondaryAccessible, fontSize: typography.caption, lineHeight: 18, marginTop: 4 },
 });
