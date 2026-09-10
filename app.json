@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DinePanel",
+    "name": "DinePanel Customer",
     "slug": "dinepanel",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,6 +8,7 @@
     "scheme": "dinepanel",
     "userInterfaceStyle": "light",
     "ios": {
+      "bundleIdentifier": "com.dinepanel.customer",
       "supportsTablet": true,
       "config": {
         "usesNonExemptEncryption": false
