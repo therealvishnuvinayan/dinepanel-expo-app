@@ -2,6 +2,7 @@ import { Stack, usePathname, useRouter, useSegments } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { RewardsProvider } from '@/context/RewardsContext';
@@ -62,7 +63,7 @@ function SessionRedirector() {
 function RootStack() {
   return (
     <>
-      <Head><title>DinePanel Customer</title></Head>
+      {Platform.OS === 'web' ? <Head><title>DinePanel Customer</title></Head> : null}
       <SessionRedirector />
       <StatusBar style="dark" />
       <Stack
