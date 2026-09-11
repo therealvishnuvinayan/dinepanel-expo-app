@@ -1,6 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, typography } from '@/constants/theme';
+import { colors, typography } from '@/constants/theme';
 
 type WordmarkProps = {
   light?: boolean;
@@ -12,28 +12,15 @@ export function Wordmark({ light = false, compact = false }: WordmarkProps) {
 
   return (
     <View style={styles.container}>
-      <View
+      <Image
+        accessibilityIgnoresInvertColors
+        accessible={false}
+        source={require('../../assets/brand/dinepanel-mark-128.png')}
         style={[
           styles.mark,
           compact && styles.markCompact,
-          { backgroundColor: light ? colors.white : colors.primary },
         ]}
-      >
-        <View
-          style={[
-            styles.markInner,
-            compact && styles.markInnerCompact,
-            { borderColor: light ? colors.primary : colors.white },
-          ]}
-        />
-        <View
-          style={[
-            styles.dot,
-            compact && styles.dotCompact,
-            { backgroundColor: light ? colors.primary : colors.white },
-          ]}
-        />
-      </View>
+      />
       <Text
         style={[
           styles.wordmark,
@@ -56,38 +43,10 @@ const styles = StyleSheet.create({
   mark: {
     width: 34,
     height: 34,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   markCompact: {
     width: 28,
     height: 28,
-    borderRadius: 10,
-  },
-  markInner: {
-    width: 14,
-    height: 18,
-    borderWidth: 2,
-    borderLeftWidth: 0,
-    borderTopRightRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-  markInnerCompact: {
-    width: 12,
-    height: 15,
-  },
-  dot: {
-    position: 'absolute',
-    width: 3,
-    height: 3,
-    borderRadius: 2,
-    left: 9,
-    top: 8,
-  },
-  dotCompact: {
-    left: 7,
-    top: 6,
   },
   wordmark: {
     fontSize: typography.heading,
@@ -98,4 +57,3 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
-

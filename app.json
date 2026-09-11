@@ -4,7 +4,7 @@
     "slug": "dinepanel",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/dinepanel-icon.png",
+    "icon": "./assets/brand/dinepanel-app-icon-1024.png",
     "scheme": "dinepanel",
     "userInterfaceStyle": "light",
     "ios": {
@@ -16,16 +16,15 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#EAF7F0",
-        "foregroundImage": "./assets/images/dinepanel-foreground.png",
-        "monochromeImage": "./assets/images/dinepanel-monochrome.png"
+        "backgroundColor": "#0F3D2E",
+        "foregroundImage": "./assets/brand/dinepanel-adaptive-foreground.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/dinepanel-favicon.png"
+      "favicon": "./assets/brand/dinepanel-mark-64.png"
     },
     "plugins": [
       "expo-router",
@@ -40,10 +39,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/dinepanel-splash.png",
-          "imageWidth": 180,
+          "image": "./assets/brand/dinepanel-logo-horizontal-1600.png",
+          "imageWidth": 280,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF"
+          "backgroundColor": "#FAF8F1"
         }
       ],
       "expo-status-bar"

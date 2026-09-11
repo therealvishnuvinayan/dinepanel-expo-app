@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">DinePanel monochrome mark</title>
+  <rect x="32" y="32" width="448" height="448" rx="118" fill="currentColor"/>
+  <circle cx="256" cy="256" r="138" fill="#FFFFFF"/>
+  <path d="M276 165 A91 91 0 0 1 276 347 Z" fill="currentColor"/>
+</svg>

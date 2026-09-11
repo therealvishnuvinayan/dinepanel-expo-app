@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DinePanel mark</title>
+  <desc id="desc">Dark pine green rounded-square mark with a warm off-white plate and fresh green half-circle.</desc>
+  <rect x="32" y="32" width="448" height="448" rx="118" fill="#0F3D2E"/>
+  <circle cx="256" cy="256" r="138" fill="#FAF8F1"/>
+  <path d="M276 165 A91 91 0 0 1 276 347 Z" fill="#A7D46F"/>
+</svg>
